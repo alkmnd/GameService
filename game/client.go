@@ -375,6 +375,9 @@ func (client *Client) handleRateMessage(message Message) {
 	gameId := message.Target
 	game := client.wsServer.findGame(gameId)
 
+	if game == nil || game.Round == nil {
+		return
+	}
 	if game.Results == nil {
 		game.Results = make(map[uuid.UUID]*Rates)
 	}
