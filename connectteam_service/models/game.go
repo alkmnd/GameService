@@ -1,8 +1,11 @@
 package models
 
+import "github.com/google/uuid"
+
 type Game struct {
-	Id        int    `json:"id"`
-	Status    string `json:"status"`
-	Name      string `json:"name"`
-	CreatorId int    `json:"creator_id"`
+	Id        uuid.UUID `json:"id"`
+	Status    string    `json:"status"`
+	Name      string    `json:"name"`
+	CreatorId uuid.UUID `json:"creator_id"`
+	MaxSize   int       `json:"max_size"`
 }

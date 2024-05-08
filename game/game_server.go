@@ -1,7 +1,8 @@
 package game
 
 import (
-	service "GameService/connectteam_service/service"
+	service "GameService/connectteam_service/requests"
+	"github.com/google/uuid"
 	"log"
 )
 
@@ -45,7 +46,7 @@ func (server *WsServer) Run() {
 	}
 }
 
-func (server *WsServer) findGame(id int) *Game {
+func (server *WsServer) findGame(id uuid.UUID) *Game {
 	var foundGame *Game
 	for game := range server.games {
 		if game.GetId() == id {
@@ -60,9 +61,7 @@ func (server *WsServer) findGame(id int) *Game {
 		return foundGame
 	}
 
-	log.Println("game found in data base")
-
-	foundGame = NewGame(dbGame.Name, dbGame.Id, dbGame.CreatorId, "not_started")
+	foundGame = NewGame(dbGame.Name, dbGame.Id, dbGame.CreatorId, dbGame.Status, dbGame.MaxSize)
 	go foundGame.RunGame()
 	server.games[foundGame] = true
 	return foundGame
@@ -93,7 +92,7 @@ func (server *WsServer) unregisterClient(client *Client) {
 	}
 }
 
-func (server *WsServer) findGameByID(ID int) *Game {
+func (server *WsServer) findGameByID(ID uuid.UUID) *Game {
 	var foundGame *Game
 	for game := range server.games {
 		if game.GetId() == ID {

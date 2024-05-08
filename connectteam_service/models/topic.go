@@ -1,6 +1,8 @@
 package models
 
+import "github.com/google/uuid"
+
 type Topic struct {
-	Id    int    `json:"id"`
-	Title string `json:"title"`
+	Id    uuid.UUID `json:"id"`
+	Title string    `json:"title"`
 }

@@ -1,56 +1,74 @@
 package game
 
 import (
+	"GameService/connectteam_service/models"
 	"encoding/json"
+	"github.com/google/uuid"
 	"log"
+	"time"
 )
 
 type Game struct {
-	Name       string           `json:"name,omitempty"`
-	Clients    map[*Client]bool `json:"-"`
-	MaxSize    int              `json:"max_size,omitempty"`
-	Status     string           `json:"status,omitempty"`
-	Creator    int              `json:"creator_id,omitempty"`
-	Topics     []Topic          `json:"topics,omitempty"`
-	RoundsLeft []*Round         `json:"-"`
-	Round      *Round           `json:"round,omitempty"`
-	register   chan *Client
-	unregister chan *Client
-	broadcast  chan *Message
-	ID         int         `json:"id"`
-	Users      []*User     `json:"users,omitempty"`
-	Results    map[int]int `json:"-"`
+	Name         string           `json:"name,omitempty"`
+	Clients      map[*Client]bool `json:"-"`
+	MaxSize      int              `json:"max_size,omitempty"`
+	Status       string           `json:"status,omitempty"`
+	Creator      uuid.UUID        `json:"creator_id,omitempty"`
+	Topics       []Topic          `json:"topics,omitempty"`
+	Round        *Round           `json:"round,omitempty"`
+	register     chan *Client
+	CurrentState interface{} `json:"current_state,omitempty"`
+	unregister   chan *Client
+	broadcast    chan *Message
+	ID           uuid.UUID            `json:"id"`
+	Users        []*User              `json:"users,omitempty"`
+	Results      map[uuid.UUID]*Rates `json:"-"`
 }
 
-// UsersQuestions Генерируются в начале раунда.
-type UsersQuestions struct {
-	Number   int         `json:"number"`
-	User     *User       `json:"user"`
-	Question string      `json:"question"`
-	Rates    map[int]int `json:"-"`
+// UserQuestion Генерируются в начале раунда.
+type UserQuestion struct {
+	Number   int                  `json:"number"`
+	User     uuid.UUID            `json:"user"`
+	Question uuid.UUID            `json:"question"`
+	Rates    map[uuid.UUID]*Rates `json:"-"`
+}
+type Rates struct {
+	Value int         `json:"value"`
+	Tags  []uuid.UUID `json:"tags"`
 }
 
 type Round struct {
-	Topic              *Topic            `json:"topic"`
-	UsersQuestions     []*UsersQuestions `json:"users-questions"`
-	UsersQuestionsLeft []*UsersQuestions `json:"users-questions-left"`
+	Topic          uuid.UUID       `json:"topic"`
+	UsersQuestions []*UserQuestion `json:"users-questions"`
 }
 
 type Topic struct {
-	Id        int      `json:"id"`
-	Used      bool     `json:"used"`
-	Title     string   `json:"title,omitempty"`
-	Questions []string `json:"questions,omitempty"`
+	Id        uuid.UUID  `json:"id"`
+	Used      bool       `json:"used"`
+	Title     string     `json:"title,omitempty"`
+	Questions []Question `json:"questions,omitempty"`
 }
 
-func NewGame(name string, id int, creator int, status string) *Game {
+type Question struct {
+	Id      uuid.UUID `json:"id"`
+	TopicId uuid.UUID `json:"topic_id"`
+	Content string    `json:"content"`
+	Tags    []Tag     `json:"tags"`
+}
+
+type Tag struct {
+	Id   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+}
+
+func NewGame(name string, id uuid.UUID, creator uuid.UUID, status string, maxSize int) *Game {
 	return &Game{
 		ID:      id,
 		Name:    name,
 		Topics:  make([]Topic, 0),
 		Creator: creator,
 		Status:  status,
-		MaxSize: 3,
+		MaxSize: maxSize,
 		Users:   make([]*User, 0),
 		// state
 		Clients:    make(map[*Client]bool),
@@ -60,7 +78,7 @@ func NewGame(name string, id int, creator int, status string) *Game {
 	}
 }
 
-func (game *Game) GetId() int {
+func (game *Game) GetId() uuid.UUID {
 	return game.ID
 }
 
@@ -109,7 +127,6 @@ func (game *Game) notifyClientJoined(client *Client) {
 		Payload: []byte{},
 		Sender:  client.User,
 	}
-	log.Println("notifyClientJoined")
 
 	game.broadcastToClientsInGame(message.encode())
 }
@@ -119,7 +136,16 @@ func (game *Game) notifyClient(client *Client, message *Message) {
 }
 
 func (game *Game) registerClientInGame(client *Client) {
-	log.Println("client try to join")
+	if len(game.Users) == game.MaxSize {
+		message := Message{
+			Action:  Error,
+			Payload: 1,
+			Target:  game,
+			Time:    time.Now(),
+		}
+		client.send <- message.encode()
+		return
+	}
 
 	for i := range game.Users {
 		if game.Users[i].Id == client.User.Id {
@@ -132,8 +158,6 @@ func (game *Game) registerClientInGame(client *Client) {
 
 			game.notifyClient(client, message)
 			game.Clients[client] = true
-
-			log.Println("client already register")
 			return
 		}
 	}
@@ -164,17 +188,11 @@ func (game *Game) registerClientInGame(client *Client) {
 	game.notifyClientJoined(client)
 	game.Clients[client] = true
 	game.notifyClient(client, message)
-	//game.listUsersInGame(client)
-	//}
-
-	//message := &Message{
-	//	Action:  Error,
-	//	Target:  game,
-	//	Payload: []byte{},
-	//	Sender:  &client.User,
-	//}
-
 	return
+}
+
+func (game *Game) endGame() {
+	game.Status = "ended"
 }
 
 func (game *Game) unregisterClientInGame(client *Client) {
@@ -190,8 +208,8 @@ func (game *Game) unregisterClientInGame(client *Client) {
 
 	if game.Round != nil && game.Round.UsersQuestions != nil {
 		for i := range game.Round.UsersQuestions {
-			if game.Round.UsersQuestions[i].User.Id == client.User.Id {
-				delete(game.Round.UsersQuestions[i].Rates, game.Round.UsersQuestions[i].User.Id)
+			if game.Round.UsersQuestions[i].User == client.User.Id {
+				delete(game.Round.UsersQuestions[i].Rates, game.Round.UsersQuestions[i].User)
 			}
 		}
 	}
@@ -202,5 +220,21 @@ func (game *Game) broadcastToClientsInGame(message []byte) {
 	for client := range game.Clients {
 		log.Printf("broadcast message to client %s", client.GetName())
 		client.send <- message
+	}
+}
+
+func (game *Game) getCreator() uuid.UUID {
+	return game.Creator
+}
+
+func (game *Game) setTopics(topics []models.Topic) {
+	for i := range topics {
+
+		game.Topics = append(game.Topics, Topic{
+			Id:        topics[i].Id,
+			Used:      false,
+			Title:     topics[i].Title,
+			Questions: nil,
+		})
 	}
 }
