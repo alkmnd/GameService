@@ -120,10 +120,13 @@ func (game *Game) notifyClient(client *Client, message *Message) {
 func (game *Game) registerClientInGame(client *Client) {
 	if len(game.Users) == game.MaxSize {
 		message := Message{
-			Action:  Error,
-			Payload: 1,
-			Target:  game.ID,
-			Time:    time.Now(),
+			Action: Error,
+			Payload: ErrorMessage{
+				Code:    1,
+				Message: "max number of participants",
+			},
+			Target: game.ID,
+			Time:   time.Now(),
 		}
 		client.send <- message.encode()
 		return
@@ -145,12 +148,14 @@ func (game *Game) registerClientInGame(client *Client) {
 	}
 
 	if game.Status == "in_progress" {
-		payload := "game in progress"
 		message := &Message{
-			Action:  Error,
-			Target:  game.ID,
-			Payload: payload,
-			Sender:  client.User,
+			Action: Error,
+			Target: game.ID,
+			Payload: ErrorMessage{
+				Code:    1,
+				Message: "game in progress",
+			},
+			Sender: client.User,
 		}
 		game.notifyClient(client, message)
 		return

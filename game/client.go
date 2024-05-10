@@ -237,6 +237,18 @@ func (client *Client) handleEndGameMessage(message Message) {
 	gameId := message.Target
 	game := client.wsServer.findGame(gameId)
 
+	if game.getCreator() != client.User.Id {
+		var messageError Message
+		messageError.Action = Error
+		messageError.Target = message.Target
+		messageError.Payload = ErrorMessage{
+			Code:    8,
+			Message: "permission denied",
+		}
+		client.send <- messageError.encode()
+		return
+	}
+
 	game.Status = "ended"
 
 	game.endGame()
@@ -270,7 +282,10 @@ func (client *Client) handleStartStageMessage(message Message) {
 		var messageError Message
 		messageError.Action = Error
 		messageError.Target = message.Target
-		messageError.Payload = 8
+		messageError.Payload = ErrorMessage{
+			Code:    8,
+			Message: "permission denied",
+		}
 		client.send <- messageError.encode()
 		return
 	}
@@ -441,7 +456,10 @@ func (client *Client) handleStartRoundMessage(message Message) {
 		var messageError Message
 		messageError.Action = Error
 		messageError.Target = message.Target
-		messageError.Payload = 8
+		messageError.Payload = ErrorMessage{
+			Code:    8,
+			Message: "permission denied",
+		}
 		client.send <- messageError.encode()
 		return
 	}
@@ -482,7 +500,10 @@ func (client *Client) handleStartRoundMessage(message Message) {
 			var messageError Message
 			messageError.Action = Error
 			messageError.Target = message.Target
-			messageError.Payload = 9
+			messageError.Payload = ErrorMessage{
+				Code:    9,
+				Message: "incorrect payload",
+			}
 			client.send <- messageError.encode()
 			return
 		}
@@ -491,7 +512,10 @@ func (client *Client) handleStartRoundMessage(message Message) {
 		var messageError Message
 		messageError.Action = Error
 		messageError.Target = message.Target
-		messageError.Payload = 9
+		messageError.Payload = ErrorMessage{
+			Code:    9,
+			Message: "incorrect payload",
+		}
 		client.send <- messageError.encode()
 		return
 	}
@@ -507,7 +531,10 @@ func (client *Client) handleStartRoundMessage(message Message) {
 		var messageError Message
 		messageError.Action = Error
 		messageError.Target = message.Target
-		messageError.Payload = 9
+		messageError.Payload = ErrorMessage{
+			Code:    9,
+			Message: "topic is already used",
+		}
 		client.send <- messageError.encode()
 		return
 	}
@@ -515,7 +542,10 @@ func (client *Client) handleStartRoundMessage(message Message) {
 		var messageError Message
 		messageError.Action = Error
 		messageError.Target = message.Target
-		messageError.Payload = 9
+		messageError.Payload = ErrorMessage{
+			Code:    8,
+			Message: "number of users is not equal to number of questions",
+		}
 		client.send <- messageError.encode()
 		return
 	}
@@ -553,7 +583,10 @@ func (client *Client) handleStartGameMessage(message Message) {
 		var messageError Message
 		messageError.Action = Error
 		messageError.Target = message.Target
-		messageError.Payload = 8
+		messageError.Payload = ErrorMessage{
+			Code:    8,
+			Message: "permission denied",
+		}
 		messageError.Time = time.Now()
 		client.send <- messageError.encode()
 		return
@@ -562,7 +595,10 @@ func (client *Client) handleStartGameMessage(message Message) {
 		var messageError Message
 		messageError.Action = Error
 		messageError.Target = message.Target
-		messageError.Payload = 6
+		messageError.Payload = ErrorMessage{
+			Code:    1,
+			Message: "number of topics is 0",
+		}
 		messageError.Time = time.Now()
 		client.send <- messageError.encode()
 		return
@@ -571,7 +607,10 @@ func (client *Client) handleStartGameMessage(message Message) {
 		var messageError Message
 		messageError.Action = Error
 		messageError.Target = message.Target
-		messageError.Payload = 4
+		messageError.Payload = ErrorMessage{
+			Code:    1,
+			Message: "game is in progress or ended",
+		}
 		messageError.Time = time.Now()
 		client.send <- messageError.encode()
 		return
@@ -605,18 +644,20 @@ func (client *Client) handleStartGameMessage(message Message) {
 		}
 	}
 
-	game.Status = "in_progress"
-	//
-	//err := client.wsServer.service.StartGame(gameId)
-	//if err != nil {
-	//	var messageError Message
-	//	messageError.Action = Error
-	//	messageError.Target = message.Target
-	//	messageError.Payload = 4
-	//	messageError.Time = time.Now()
-	//	client.send <- messageError.encode()
-	//	return
-	//}
+	err := client.wsServer.service.StartGame(gameId)
+	if err != nil {
+		var messageError Message
+		messageError.Action = Error
+		messageError.Target = message.Target
+		messageError.Payload = ErrorMessage{
+			Code:    4,
+			Message: "error to start game",
+		}
+		game.Status = "in_progress"
+		messageError.Time = time.Now()
+		client.send <- messageError.encode()
+		return
+	}
 
 	messageSend.Action = StartGameAction
 	messageSend.Target = game.ID
@@ -634,7 +675,10 @@ func (client *Client) handleSelectTopicGameMessage(message Message) {
 		var messageError Message
 		messageError.Action = Error
 		messageError.Target = message.Target
-		messageError.Payload = 7
+		messageError.Payload = ErrorMessage{
+			Code:    8,
+			Message: "permission denied",
+		}
 		client.send <- messageError.encode()
 		return
 	}
@@ -644,7 +688,10 @@ func (client *Client) handleSelectTopicGameMessage(message Message) {
 		var messageError Message
 		messageError.Action = Error
 		messageError.Target = message.Target
-		messageError.Payload = 7
+		messageError.Payload = ErrorMessage{
+			Code:    7,
+			Message: fmt.Sprintf("error to get topics from database: %s", err.Error()),
+		}
 		client.send <- messageError.encode()
 		return
 	}
@@ -689,7 +736,10 @@ func (client *Client) handleSelectTopicGameMessage(message Message) {
 			var messageError Message
 			messageError.Action = Error
 			messageError.Target = message.Target
-			messageError.Payload = 7
+			messageError.Payload = ErrorMessage{
+				Code:    7,
+				Message: "incorrect payload",
+			}
 			client.send <- messageError.encode()
 			return
 		}
@@ -698,7 +748,10 @@ func (client *Client) handleSelectTopicGameMessage(message Message) {
 		var messageError Message
 		messageError.Action = Error
 		messageError.Target = message.Target
-		messageError.Payload = 7
+		messageError.Payload = ErrorMessage{
+			Code:    7,
+			Message: "cannot tale creator plan",
+		}
 		client.send <- messageError.encode()
 		return
 	}

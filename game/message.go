@@ -34,10 +34,14 @@ type Message struct {
 	Time    time.Time   `json:"time,omitempty"`
 }
 
+type ErrorMessage struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+}
+
 func (message *Message) encode() []byte {
 	json, err := json.Marshal(message)
 	if err != nil {
-		println("123")
 		log.Println(err)
 	}
 
