@@ -596,7 +596,7 @@ func (client *Client) handleStartGameMessage(message Message) {
 		messageError.Action = Error
 		messageError.Target = message.Target
 		messageError.Payload = ErrorMessage{
-			Code:    1,
+			Code:    6,
 			Message: "number of topics is 0",
 		}
 		messageError.Time = time.Now()
@@ -608,7 +608,7 @@ func (client *Client) handleStartGameMessage(message Message) {
 		messageError.Action = Error
 		messageError.Target = message.Target
 		messageError.Payload = ErrorMessage{
-			Code:    1,
+			Code:    5,
 			Message: "game is in progress or ended",
 		}
 		messageError.Time = time.Now()
@@ -651,14 +651,14 @@ func (client *Client) handleStartGameMessage(message Message) {
 		messageError.Target = message.Target
 		messageError.Payload = ErrorMessage{
 			Code:    4,
-			Message: "error to start game",
+			Message: fmt.Sprintf("error to start game: %s", err.Error()),
 		}
-		game.Status = "in_progress"
 		messageError.Time = time.Now()
 		client.send <- messageError.encode()
 		return
 	}
 
+	game.Status = "in_progress"
 	messageSend.Action = StartGameAction
 	messageSend.Target = game.ID
 	messageSend.Sender = message.Sender

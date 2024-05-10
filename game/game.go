@@ -152,7 +152,7 @@ func (game *Game) registerClientInGame(client *Client) {
 			Action: Error,
 			Target: game.ID,
 			Payload: ErrorMessage{
-				Code:    1,
+				Code:    2,
 				Message: "game in progress",
 			},
 			Sender: client.User,
