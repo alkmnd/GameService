@@ -61,6 +61,7 @@ func (s *GameService) GetGame(id uuid.UUID) (game models.Game, err error) {
 		return game, err
 	}
 
+	println(string(resp.Body()))
 	err = json.Unmarshal(resp.Body(), &game)
 	if err != nil {
 		return game, err

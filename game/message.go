@@ -2,6 +2,7 @@ package game
 
 import (
 	"encoding/json"
+	"github.com/google/uuid"
 	"log"
 	"time"
 )
@@ -28,7 +29,7 @@ const UserLeftAction = "user-left"
 type Message struct {
 	Action  string      `json:"action"`
 	Payload interface{} `json:"payload,omitempty"`
-	Target  *Game       `json:"target"`
+	Target  uuid.UUID   `json:"target"`
 	Sender  *User       `json:"sender"`
 	Time    time.Time   `json:"time,omitempty"`
 }

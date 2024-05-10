@@ -91,6 +91,7 @@ func ServeWs(wsServer *WsServer, w http.ResponseWriter, r *http.Request) {
 	}
 
 	user, err := wsServer.service.GetUserById(id)
+	println(err)
 
 	client := newClient(conn, wsServer, User{
 		Id:   id,
@@ -199,7 +200,7 @@ func (client *Client) handleNewMessage(jsonMessage []byte) {
 	switch message.Action {
 
 	case SendMessageAction:
-		if game := client.wsServer.findGame(message.Target.ID); game != nil {
+		if game := client.wsServer.findGame(message.Target); game != nil {
 			game.broadcast <- &message
 		}
 	case JoinGameAction:
@@ -227,13 +228,13 @@ func (client *Client) handleNewMessage(jsonMessage []byte) {
 }
 
 type ratePayload struct {
-	Value  int       `json:"value"`
-	UserId uuid.UUID `json:"user_id"`
-	Tags   []Tag     `json:"tags"`
+	Value  int         `json:"value"`
+	UserId uuid.UUID   `json:"user_id"`
+	Tags   []uuid.UUID `json:"tags"`
 }
 
 func (client *Client) handleEndGameMessage(message Message) {
-	gameId := message.Target.ID
+	gameId := message.Target
 	game := client.wsServer.findGame(gameId)
 
 	game.Status = "ended"
@@ -250,10 +251,10 @@ func (client *Client) handleEndGameMessage(message Message) {
 			Tags:  tags,
 		}
 	}
-	_ = client.wsServer.service.SaveResults(gameId, results)
+	//_ = client.wsServer.service.SaveResults(gameId, results)
 	game.broadcast <- &Message{
 		Action: EndGameAction,
-		Target: game,
+		Target: game.ID,
 	}
 
 	return
@@ -262,7 +263,7 @@ func (client *Client) handleEndGameMessage(message Message) {
 
 func (client *Client) handleStartStageMessage(message Message) {
 
-	gameId := message.Target.ID
+	gameId := message.Target
 	game := client.wsServer.findGame(gameId)
 
 	if game.getCreator() != client.User.Id {
@@ -293,7 +294,7 @@ func (client *Client) handleStartStageMessage(message Message) {
 		_ = client.wsServer.service.EndGame(gameId)
 		game.broadcast <- &Message{
 			Action: EndGameAction,
-			Target: game,
+			Target: game.ID,
 		}
 
 		return
@@ -301,7 +302,7 @@ func (client *Client) handleStartStageMessage(message Message) {
 	if len(game.Round.UsersQuestions) == 0 {
 		game.broadcast <- &Message{
 			Action: RoundEndAction,
-			Target: game,
+			Target: game.ID,
 		}
 		return
 	}
@@ -317,11 +318,12 @@ func (client *Client) handleStartStageMessage(message Message) {
 		Target:  message.Target,
 		Payload: payload,
 		Sender:  message.Sender,
+		Time:    time.Now(),
 	}
 
 }
 func (client *Client) handleRateMessage(message Message) {
-	gameId := message.Target.ID
+	gameId := message.Target
 	game := client.wsServer.findGame(gameId)
 
 	if game.Results == nil {
@@ -329,9 +331,12 @@ func (client *Client) handleRateMessage(message Message) {
 	}
 
 	var rate ratePayload
-	if payload, ok := message.Payload.(ratePayload); !ok {
-		rate = payload
-	} else {
+	jsonPayload, err := json.Marshal(message.Payload)
+	if err != nil {
+		return
+	}
+	err = json.Unmarshal(jsonPayload, &rate)
+	if err != nil {
 		var messageError Message
 		messageError.Action = Error
 		messageError.Target = message.Target
@@ -353,15 +358,25 @@ func (client *Client) handleRateMessage(message Message) {
 		return
 	}
 
-	message.Target = game
+	message.Target = game.ID
 
 	usersQuestions.Rates[client.User.Id].Value = rate.Value
+	for i := range rate.Tags {
+		usersQuestions.Rates[client.User.Id].Tags = append(usersQuestions.Rates[client.User.Id].Tags, rate.Tags[i])
+	}
 	_, ok := game.Results[rate.UserId]
 	if !ok {
+		game.Results[rate.UserId] = &Rates{
+			Value: 0,
+			Tags:  make([]uuid.UUID, 0),
+		}
 		game.Results[rate.UserId].Value = rate.Value
 	} else {
 		game.Results[rate.UserId].Value += rate.Value
 	}
+	game.Results[rate.UserId].Tags = append(game.Results[rate.UserId].Tags, rate.Tags...)
+
+	game.broadcast <- &message
 
 	if len(usersQuestions.Rates) == len(game.Users)-1 {
 		game.Round.UsersQuestions = goterators.Filter(game.Round.UsersQuestions, func(item *UserQuestion) bool {
@@ -370,16 +385,25 @@ func (client *Client) handleRateMessage(message Message) {
 		game.broadcast <- &Message{
 			Action: RateEndAction,
 			Target: message.Target,
+			Time:   time.Now(),
 		}
 		return
 	}
 
-	game.broadcast <- &message
 }
 
 func (client *Client) handleUserEndAnswerMessage(message Message) {
-	gameId := message.Target.ID
+	gameId := message.Target
 	game := client.wsServer.findGame(gameId)
+
+	if game.Round == nil || game.Round.UsersQuestions == nil {
+		var messageError Message
+		messageError.Action = Error
+		messageError.Target = message.Target
+		messageError.Payload = 12
+		client.send <- messageError.encode()
+		return
+	}
 
 	stage, _, err := goterators.Find(game.Round.UsersQuestions, func(item *UserQuestion) bool {
 		return item.User == client.User.Id
@@ -391,22 +415,27 @@ func (client *Client) handleUserEndAnswerMessage(message Message) {
 
 	for i := range game.Users {
 		if game.Users[i].Id != client.User.Id {
-			stage.Rates[game.Users[i].Id].Value = 0
+			stage.Rates[game.Users[i].Id] = &Rates{
+				Value: 0,
+				Tags:  make([]uuid.UUID, 0),
+			}
 		}
 	}
+	message.Time = time.Now()
 
 	game.broadcast <- &message
 }
 
 func (client *Client) handleUserStartAnswerMessage(message Message) {
-	gameId := message.Target.ID
+	gameId := message.Target
 	game := client.wsServer.findGame(gameId)
+	message.Time = time.Now()
 	game.broadcast <- &message
 }
 
 func (client *Client) handleStartRoundMessage(message Message) {
 	var messageSend *Message
-	gameId := message.Target.ID
+	gameId := message.Target
 	game := client.wsServer.findGame(gameId)
 	if client.User.Id != game.getCreator() {
 		var messageError Message
@@ -420,7 +449,6 @@ func (client *Client) handleStartRoundMessage(message Message) {
 	if len(goterators.Filter(game.Topics, func(item Topic) bool {
 		return item.Used == false
 	})) == 0 {
-		game.endGame()
 		game.endGame()
 		results := make(map[uuid.UUID]models.Rates)
 		for i, v := range game.Results {
@@ -437,7 +465,7 @@ func (client *Client) handleStartRoundMessage(message Message) {
 		_ = client.wsServer.service.EndGame(game.ID)
 		game.broadcast <- &Message{
 			Action: EndGameAction,
-			Target: game,
+			Target: game.ID,
 		}
 		return
 	}
@@ -448,8 +476,17 @@ func (client *Client) handleStartRoundMessage(message Message) {
 	}
 
 	var topicId uuid.UUID
-	if payload, ok := message.Payload.(uuid.UUID); ok {
-		topicId = payload
+	if payload, ok := message.Payload.(string); ok {
+		_uuid, err := uuid.Parse(payload)
+		if err != nil {
+			var messageError Message
+			messageError.Action = Error
+			messageError.Target = message.Target
+			messageError.Payload = 9
+			client.send <- messageError.encode()
+			return
+		}
+		topicId = _uuid
 	} else {
 		var messageError Message
 		messageError.Action = Error
@@ -466,7 +503,7 @@ func (client *Client) handleStartRoundMessage(message Message) {
 			break
 		}
 	}
-	if topic == nil {
+	if topic == nil || topic.Used == true {
 		var messageError Message
 		messageError.Action = Error
 		messageError.Target = message.Target
@@ -502,13 +539,14 @@ func (client *Client) handleStartRoundMessage(message Message) {
 		Action:  StartRoundAction,
 		Target:  message.Target,
 		Payload: game.Round.UsersQuestions,
+		Time:    time.Now(),
 	}
 	game.broadcast <- messageSend
 }
 
 func (client *Client) handleStartGameMessage(message Message) {
 	var messageSend Message
-	gameId := message.Target.ID
+	gameId := message.Target
 
 	game := client.wsServer.findGame(gameId)
 	if game.getCreator() != client.User.Id {
@@ -516,25 +554,7 @@ func (client *Client) handleStartGameMessage(message Message) {
 		messageError.Action = Error
 		messageError.Target = message.Target
 		messageError.Payload = 8
-		client.send <- messageError.encode()
-		return
-	}
-	if game.Status == "in_progress" || game.Status == "ended" {
-		var messageError Message
-		messageError.Action = Error
-		messageError.Target = message.Target
-		messageError.Payload = 4
-		client.send <- messageError.encode()
-		return
-	}
-	game.Status = "in_progress"
-
-	err := client.wsServer.service.StartGame(gameId)
-	if err != nil {
-		var messageError Message
-		messageError.Action = Error
-		messageError.Target = message.Target
-		messageError.Payload = 4
+		messageError.Time = time.Now()
 		client.send <- messageError.encode()
 		return
 	}
@@ -543,12 +563,24 @@ func (client *Client) handleStartGameMessage(message Message) {
 		messageError.Action = Error
 		messageError.Target = message.Target
 		messageError.Payload = 6
+		messageError.Time = time.Now()
 		client.send <- messageError.encode()
 		return
 	}
+	if game.Status == "in_progress" || game.Status == "ended" {
+		var messageError Message
+		messageError.Action = Error
+		messageError.Target = message.Target
+		messageError.Payload = 4
+		messageError.Time = time.Now()
+		client.send <- messageError.encode()
+		return
+	}
+
 	questions := make(map[uuid.UUID][]models.Question)
 
 	for i, _ := range game.Topics {
+		var err error
 		questions[game.Topics[i].Id], err = client.wsServer.service.GetRandQuestionsWithLimit(game.Topics[i].Id, len(game.Users))
 		if err != nil {
 			continue
@@ -573,13 +605,29 @@ func (client *Client) handleStartGameMessage(message Message) {
 		}
 	}
 
+	game.Status = "in_progress"
+	//
+	//err := client.wsServer.service.StartGame(gameId)
+	//if err != nil {
+	//	var messageError Message
+	//	messageError.Action = Error
+	//	messageError.Target = message.Target
+	//	messageError.Payload = 4
+	//	messageError.Time = time.Now()
+	//	client.send <- messageError.encode()
+	//	return
+	//}
+
 	messageSend.Action = StartGameAction
-	messageSend.Target = game
+	messageSend.Target = game.ID
+	messageSend.Sender = message.Sender
+	messageSend.Time = time.Now()
+	messageSend.Payload = game
 	game.broadcast <- &messageSend
 }
 
 func (client *Client) handleSelectTopicGameMessage(message Message) {
-	gameId := message.Target.ID
+	gameId := message.Target
 	game := client.wsServer.findGame(gameId)
 
 	if message.Sender.Id != game.getCreator() {
@@ -605,16 +653,37 @@ func (client *Client) handleSelectTopicGameMessage(message Message) {
 	case "basic":
 		topics, _ := client.wsServer.service.GetRandTopicsWithLimit(3)
 		game.setTopics(topics)
-		game.notifyClient(client, &message)
+		game.notifyClient(client, &Message{
+			Action:  message.Action,
+			Payload: game.Topics,
+			Target:  game.ID,
+			Sender:  message.Sender,
+			Time:    time.Now(),
+		})
 		return
 	case "advanced", "premium":
-		if topics, ok := message.Payload.([]models.Topic); ok {
-			for i := range topics {
-				topic, _ := client.wsServer.service.GetTopic(topics[i].Id)
-				topics[i].Title = topic.Title
+		var topics []models.Topic
+		if payloadData, ok := message.Payload.([]interface{}); ok {
+			for i := range payloadData {
+				uuidString, ok := payloadData[i].(string)
+				if !ok {
+					continue
+				}
+				topicUuid, err := uuid.Parse(uuidString)
+				if err != nil {
+					continue
+				}
+				topic, _ := client.wsServer.service.GetTopic(topicUuid)
+				topics = append(topics, topic)
 			}
 			game.setTopics(topics)
-			game.notifyClient(client, &message)
+			game.notifyClient(client, &Message{
+				Action:  message.Action,
+				Payload: game.Topics,
+				Target:  game.ID,
+				Sender:  message.Sender,
+				Time:    time.Now(),
+			})
 			return
 		} else {
 			var messageError Message
@@ -638,7 +707,7 @@ func (client *Client) handleSelectTopicGameMessage(message Message) {
 
 func (client *Client) handleJoinGameMessage(message Message) {
 
-	gameId := message.Target.ID
+	gameId := message.Target
 	game := client.wsServer.findGame(gameId)
 	if game == nil {
 		return
@@ -648,11 +717,11 @@ func (client *Client) handleJoinGameMessage(message Message) {
 }
 
 func (client *Client) handleLeaveGameMessage(message Message) {
-	game := client.wsServer.findGame(message.Target.ID)
+	game := client.wsServer.findGame(message.Target)
 	game.unregister <- client
 	var messageSend Message
 	messageSend.Action = UserLeftAction
 	messageSend.Sender = client.User
-	messageSend.Target = game
+	messageSend.Target = game.ID
 	game.broadcast <- &messageSend
 }

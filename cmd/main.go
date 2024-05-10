@@ -8,12 +8,13 @@ import (
 	"github.com/spf13/viper"
 	"net/http"
 	"os"
+	"sync"
 )
 
 func main() {
-	if err := initConfig(); err != nil {
-		logrus.Fatalf("error")
-	}
+	//if err := initConfig(); err != nil {
+	//	logrus.Fatalf("error")
+	//}
 
 	if err := godotenv.Load(); err != nil {
 		logrus.Fatalf("error")
@@ -23,13 +24,23 @@ func main() {
 
 	wsServer := game.NewWebsocketServer(httpService)
 
-	go wsServer.Run()
+	var wg sync.WaitGroup
+	wg.Add(2)
 
-	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+	go func() {
+		defer wg.Done()
+		wsServer.Run()
+	}()
 
-		game.ServeWs(wsServer, w, r)
-	})
-	go http.ListenAndServe(":8080", nil)
+	go func() {
+		defer wg.Done()
+		http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+			game.ServeWs(wsServer, w, r)
+		})
+		http.ListenAndServe(":8080", nil)
+	}()
+
+	wg.Wait()
 
 }
 

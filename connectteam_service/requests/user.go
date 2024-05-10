@@ -32,6 +32,7 @@ func (s *UserService) GetUserById(id uuid.UUID) (user models.User, err error) {
 		return user, err
 	}
 
+	println(string(resp.Body()))
 	err = json.Unmarshal(resp.Body(), &user)
 	if err != nil {
 		return user, err

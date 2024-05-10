@@ -2,7 +2,6 @@ package game
 
 import (
 	"GameService/connectteam_service/models"
-	"encoding/json"
 	"github.com/google/uuid"
 	"log"
 	"time"
@@ -102,29 +101,12 @@ func (game *Game) RunGame() {
 	}
 }
 
-const welcomeMessage = "%s joined the room"
-
-type UserList struct {
-	Users []User `json:"users"`
-}
-
-func (game *Game) listUsersInGame(client *Client) {
-	for existingClient := range game.Clients {
-		message := &Message{
-			Action: UserJoinedAction,
-			Target: game,
-			Sender: existingClient.User,
-		}
-		game.broadcastToClientsInGame(message.encode())
-	}
-}
-
 func (game *Game) notifyClientJoined(client *Client) {
 
 	message := &Message{
 		Action:  JoinGameAction,
-		Target:  game,
-		Payload: []byte{},
+		Target:  game.ID,
+		Payload: game,
 		Sender:  client.User,
 	}
 
@@ -140,7 +122,7 @@ func (game *Game) registerClientInGame(client *Client) {
 		message := Message{
 			Action:  Error,
 			Payload: 1,
-			Target:  game,
+			Target:  game.ID,
 			Time:    time.Now(),
 		}
 		client.send <- message.encode()
@@ -151,8 +133,8 @@ func (game *Game) registerClientInGame(client *Client) {
 		if game.Users[i].Id == client.User.Id {
 			message := &Message{
 				Action:  UserJoinedAction,
-				Target:  game,
-				Payload: []byte{},
+				Target:  game.ID,
+				Payload: game,
 				Sender:  client.User,
 			}
 
@@ -163,12 +145,10 @@ func (game *Game) registerClientInGame(client *Client) {
 	}
 
 	if game.Status == "in_progress" {
-		payload, _ := json.Marshal("game in progress")
+		payload := "game in progress"
 		message := &Message{
-			Action: Error,
-			Target: &Game{
-				ID: game.ID,
-			},
+			Action:  Error,
+			Target:  game.ID,
 			Payload: payload,
 			Sender:  client.User,
 		}
@@ -178,13 +158,13 @@ func (game *Game) registerClientInGame(client *Client) {
 
 	message := &Message{
 		Action:  UserJoinedAction,
-		Target:  game,
-		Payload: []byte{},
+		Target:  game.ID,
+		Payload: game,
 		Sender:  client.User,
+		Time:    time.Now(),
 	}
 
 	game.Users = append(game.Users, client.User)
-	log.Println("client joined")
 	game.notifyClientJoined(client)
 	game.Clients[client] = true
 	game.notifyClient(client, message)

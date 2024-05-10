@@ -19,14 +19,20 @@ func NewTopicService(apiKey string) Topic {
 
 func (s *TopicService) GetRandQuestionsWithLimit(topicId uuid.UUID, limit int) (questions []models.Question, _ error) {
 	client := resty.New()
+	println(topicId.String())
 	var resp, err = client.R().
 		SetHeader("X-API-Key", s.apiKey).
-		SetPathParams(map[string]string{"id": topicId.String(), "limit": strconv.Itoa(limit)}).Get(endpoints.GetRandQuestionsURL)
+		SetQueryParams(map[string]string{
+			"topic_id": topicId.String(),
+			"limit":    strconv.Itoa(limit),
+		}).
+		Get(endpoints.GetRandQuestionsURL)
 	if err != nil {
 		return questions, err
 	}
 
 	err = json.Unmarshal(resp.Body(), &questions)
+	println(string(resp.Body()))
 	if err != nil {
 		return questions, err
 	}

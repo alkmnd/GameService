@@ -3,7 +3,6 @@ package game
 import (
 	service "GameService/connectteam_service/requests"
 	"github.com/google/uuid"
-	"log"
 )
 
 type WsServer struct {
@@ -33,13 +32,10 @@ func (server *WsServer) Run() {
 		select {
 
 		case client := <-server.register:
-			log.Println("game_server Run() register")
 			server.registerClient(client)
-
 		case client := <-server.unregister:
 			server.unregisterClient(client)
 		case message := <-server.broadcast:
-			log.Println("game_server Run() broadcast")
 			server.broadcastToClients(message)
 		}
 
@@ -60,24 +56,24 @@ func (server *WsServer) findGame(id uuid.UUID) *Game {
 	if err != nil || dbGame.Status == "ended" {
 		return foundGame
 	}
-
-	foundGame = NewGame(dbGame.Name, dbGame.Id, dbGame.CreatorId, dbGame.Status, dbGame.MaxSize)
+	var maxSize int
+	creatorPlan, _ := server.service.GetCreatorPlan(dbGame.CreatorId)
+	switch creatorPlan.PlanType {
+	case "basic":
+		maxSize = 3
+	case "advanced":
+		maxSize = 5
+	case "premium":
+		maxSize = 10
+	}
+	foundGame = NewGame(dbGame.Name, dbGame.Id, dbGame.CreatorId, dbGame.Status, maxSize)
 	go foundGame.RunGame()
 	server.games[foundGame] = true
 	return foundGame
 }
 
-//func (server *WsServer) createGame(name string, id int) *Game {
-//	game := NewGame(name, id)
-//	go game.RunGame()
-//	server.games[game] = true
-//
-//	return game
-//}
-
 func (server *WsServer) broadcastToClients(message []byte) {
 	for client := range server.clients {
-		log.Println("broadcastToClients")
 		client.send <- message
 	}
 }
