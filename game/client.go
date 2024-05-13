@@ -361,7 +361,7 @@ func (client *Client) handleRateMessage(message Message) {
 	}
 
 	usersQuestions := goterators.Filter(game.Round.UsersQuestions, func(item *UserQuestion) bool {
-		return item.User == rate.UserId
+		return item.User.Id == rate.UserId
 	})[0]
 
 	if client.User.Id == rate.UserId {
@@ -421,7 +421,7 @@ func (client *Client) handleUserEndAnswerMessage(message Message) {
 	}
 
 	stage, _, err := goterators.Find(game.Round.UsersQuestions, func(item *UserQuestion) bool {
-		return item.User == client.User.Id
+		return item.User.Id == client.User.Id
 	})
 
 	if err != nil {
@@ -553,7 +553,7 @@ func (client *Client) handleStartRoundMessage(message Message) {
 	cnt := 1
 	for i := range game.Users {
 		game.Round.UsersQuestions = append(game.Round.UsersQuestions, &UserQuestion{
-			User:     game.Users[i].Id,
+			User:     *game.Users[i],
 			Question: topic.Questions[i],
 			Number:   cnt,
 			Rates:    make(map[uuid.UUID]*Rates),

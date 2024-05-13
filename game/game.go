@@ -27,7 +27,7 @@ type Game struct {
 // UserQuestion Генерируются в начале раунда.
 type UserQuestion struct {
 	Number   int                  `json:"number"`
-	User     uuid.UUID            `json:"user"`
+	User     User                 `json:"user"`
 	Question Question             `json:"question"`
 	Rates    map[uuid.UUID]*Rates `json:"-"`
 }
@@ -193,8 +193,8 @@ func (game *Game) unregisterClientInGame(client *Client) {
 
 	if game.Round != nil && game.Round.UsersQuestions != nil {
 		for i := range game.Round.UsersQuestions {
-			if game.Round.UsersQuestions[i].User == client.User.Id {
-				delete(game.Round.UsersQuestions[i].Rates, game.Round.UsersQuestions[i].User)
+			if game.Round.UsersQuestions[i].User.Id == client.User.Id {
+				delete(game.Round.UsersQuestions[i].Rates, game.Round.UsersQuestions[i].User.Id)
 			}
 		}
 	}
