@@ -28,7 +28,7 @@ type Game struct {
 type UserQuestion struct {
 	Number   int                  `json:"number"`
 	User     uuid.UUID            `json:"user"`
-	Question uuid.UUID            `json:"question"`
+	Question Question             `json:"question"`
 	Rates    map[uuid.UUID]*Rates `json:"-"`
 }
 type Rates struct {

@@ -554,7 +554,7 @@ func (client *Client) handleStartRoundMessage(message Message) {
 	for i := range game.Users {
 		game.Round.UsersQuestions = append(game.Round.UsersQuestions, &UserQuestion{
 			User:     game.Users[i].Id,
-			Question: topic.Questions[i].Id,
+			Question: topic.Questions[i],
 			Number:   cnt,
 			Rates:    make(map[uuid.UUID]*Rates),
 		})
