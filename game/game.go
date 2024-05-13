@@ -213,6 +213,7 @@ func (game *Game) getCreator() uuid.UUID {
 }
 
 func (game *Game) setTopics(topics []models.Topic) {
+	game.Topics = make([]Topic, 0)
 	for i := range topics {
 
 		game.Topics = append(game.Topics, Topic{
