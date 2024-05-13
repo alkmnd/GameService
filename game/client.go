@@ -776,5 +776,6 @@ func (client *Client) handleLeaveGameMessage(message Message) {
 	messageSend.Action = UserLeftAction
 	messageSend.Sender = client.User
 	messageSend.Target = game.ID
+	messageSend.Payload = game
 	game.broadcast <- &messageSend
 }
