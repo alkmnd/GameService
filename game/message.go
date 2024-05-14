@@ -16,7 +16,6 @@ const Error = "error"
 const UserJoinedAction = "join-success"
 const StartRoundAction = "start-round"
 const RoundEndAction = "round-end"
-const SendQuestionToUserAction = "send-question-to-user"
 const UserStartAnswerAction = "start-answer"
 const UserEndAnswerAction = "end-answer"
 const RateAction = "rate-user"
@@ -34,16 +33,18 @@ type Message struct {
 	Time    time.Time   `json:"time,omitempty"`
 }
 
+func (message *Message) encode() []byte {
+	messageJson, err := json.Marshal(message)
+	if err != nil {
+		log.Println(err)
+	}
+
+	return messageJson
+}
+
 type ErrorMessage struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 }
 
-func (message *Message) encode() []byte {
-	json, err := json.Marshal(message)
-	if err != nil {
-		log.Println(err)
-	}
 
-	return json
-}

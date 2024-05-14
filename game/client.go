@@ -316,8 +316,9 @@ func (client *Client) handleStartStageMessage(message Message) {
 	}
 	if len(game.Round.UsersQuestions) == 0 {
 		game.broadcast <- &Message{
-			Action: RoundEndAction,
-			Target: game.ID,
+			Action:  RoundEndAction,
+			Target:  game.ID,
+			Payload: game.Topics,
 		}
 		return
 	}
@@ -750,7 +751,7 @@ func (client *Client) handleSelectTopicGameMessage(message Message) {
 		messageError.Target = message.Target
 		messageError.Payload = ErrorMessage{
 			Code:    7,
-			Message: "cannot tale creator plan",
+			Message: "cannot get creator plan",
 		}
 		client.send <- messageError.encode()
 		return
@@ -776,6 +777,6 @@ func (client *Client) handleLeaveGameMessage(message Message) {
 	messageSend.Action = UserLeftAction
 	messageSend.Sender = client.User
 	messageSend.Target = game.ID
-	messageSend.Payload = game
+	messageSend.Payload = game.Users
 	game.broadcast <- &messageSend
 }

@@ -188,6 +188,7 @@ func (game *Game) unregisterClientInGame(client *Client) {
 	for i := range game.Users {
 		if game.Users[i].Id == client.User.Id {
 			game.Users = append(game.Users[:i], game.Users[i+1:]...)
+			break
 		}
 	}
 
