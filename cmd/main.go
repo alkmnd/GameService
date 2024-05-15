@@ -5,7 +5,6 @@ import (
 	"GameService/game"
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"net/http"
 	"os"
 	"sync"
@@ -42,10 +41,4 @@ func main() {
 
 	wg.Wait()
 
-}
-
-func initConfig() error {
-	viper.AddConfigPath("configs")
-	viper.SetConfigName("config")
-	return viper.ReadInConfig()
 }

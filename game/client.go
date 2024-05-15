@@ -71,7 +71,7 @@ func ServeWs(wsServer *WsServer, w http.ResponseWriter, r *http.Request) {
 	token, ok := r.URL.Query()["token"]
 
 	if !ok || len(token[0]) < 1 {
-		log.Println("Url Param 'token' is missing")
+		log.Println("Url Param '' is missing")
 		return
 	}
 
@@ -109,7 +109,7 @@ const (
 	writeWait = 10 * time.Second
 
 	// Max time till next pong from peer
-	pongWait = 60 * time.Second
+	pongWait = 60 * time.Hour
 
 	// Send ping interval, must be less than pong wait time
 	pingPeriod = (pongWait * 9) / 10
