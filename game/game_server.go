@@ -1,7 +1,7 @@
 package game
 
 import (
-	service "GameService/connectteam_service/requests"
+	service "GameService/repository/requests"
 	"github.com/google/uuid"
 )
 
@@ -9,20 +9,20 @@ type WsServer struct {
 	clients    map[*Client]bool
 	register   chan *Client
 	unregister chan *Client
-	broadcast  chan []byte
 	games      map[*Game]bool
-	service    *service.HTTPService
+	service    *service.Repository
+	generator  *JWTGenerator
 }
 
 // NewWebsocketServer creates a new WsServer type
-func NewWebsocketServer(service *service.HTTPService) *WsServer {
+func NewWebsocketServer(service *service.Repository, generator *JWTGenerator) *WsServer {
 	return &WsServer{
 		clients:    make(map[*Client]bool),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
-		broadcast:  make(chan []byte),
 		games:      make(map[*Game]bool),
 		service:    service,
+		generator:  generator,
 	}
 }
 
@@ -30,13 +30,10 @@ func NewWebsocketServer(service *service.HTTPService) *WsServer {
 func (server *WsServer) Run() {
 	for {
 		select {
-
 		case client := <-server.register:
 			server.registerClient(client)
 		case client := <-server.unregister:
 			server.unregisterClient(client)
-		case message := <-server.broadcast:
-			server.broadcastToClients(message)
 		}
 
 	}

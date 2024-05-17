@@ -1,27 +1,27 @@
 package game
 
 import (
-	"GameService/connectteam_service/models"
+	"GameService/repository/models"
 	"github.com/google/uuid"
 	"log"
 	"time"
 )
 
 type Game struct {
-	Name         string           `json:"name,omitempty"`
-	Clients      map[*Client]bool `json:"-"`
-	MaxSize      int              `json:"max_size,omitempty"`
-	Status       string           `json:"status,omitempty"`
-	Creator      uuid.UUID        `json:"creator_id,omitempty"`
-	Topics       []Topic          `json:"topics,omitempty"`
-	Round        *Round           `json:"round,omitempty"`
-	register     chan *Client
-	CurrentState interface{} `json:"current_state,omitempty"`
-	unregister   chan *Client
-	broadcast    chan *Message
-	ID           uuid.UUID            `json:"id"`
-	Users        []*User              `json:"users,omitempty"`
-	Results      map[uuid.UUID]*Rates `json:"-"`
+	Name       string           `json:"name,omitempty"`
+	Clients    map[*Client]bool `json:"-"`
+	MaxSize    int              `json:"max_size,omitempty"`
+	Status     string           `json:"status,omitempty"`
+	Creator    uuid.UUID        `json:"creator_id,omitempty"`
+	Topics     []Topic          `json:"topics,omitempty"`
+	Round      *Round           `json:"round,omitempty"`
+	MeetingJWT string           `json:"meeting_jwt"`
+	register   chan *Client
+	unregister chan *Client
+	broadcast  chan *Message
+	ID         uuid.UUID            `json:"id"`
+	Users      []*User              `json:"users,omitempty"`
+	Results    map[uuid.UUID]*Rates `json:"-"`
 }
 
 // UserQuestion Генерируются в начале раунда.
@@ -60,16 +60,16 @@ type Tag struct {
 	Name string    `json:"name"`
 }
 
+// NewGame creates a new game.
 func NewGame(name string, id uuid.UUID, creator uuid.UUID, status string, maxSize int) *Game {
 	return &Game{
-		ID:      id,
-		Name:    name,
-		Topics:  make([]Topic, 0),
-		Creator: creator,
-		Status:  status,
-		MaxSize: maxSize,
-		Users:   make([]*User, 0),
-		// state
+		ID:         id,
+		Name:       name,
+		Topics:     make([]Topic, 0),
+		Creator:    creator,
+		Status:     status,
+		MaxSize:    maxSize,
+		Users:      make([]*User, 0),
 		Clients:    make(map[*Client]bool),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
@@ -85,8 +85,8 @@ func (game *Game) GetName() string {
 	return game.Name
 }
 
+// RunGame run game, accepting various requests.
 func (game *Game) RunGame() {
-	log.Println("RunGame()")
 	for {
 		select {
 		case client := <-game.register:
@@ -147,7 +147,7 @@ func (game *Game) registerClientInGame(client *Client) {
 		}
 	}
 
-	if game.Status == "in_progress" {
+	if game.Status == "in_progress" || game.Status == "ended" {
 		message := &Message{
 			Action: Error,
 			Target: game.ID,

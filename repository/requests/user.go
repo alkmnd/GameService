@@ -1,8 +1,8 @@
 package requests
 
 import (
-	"GameService/connectteam_service/endpoints"
-	"GameService/connectteam_service/models"
+	"GameService/repository/endpoints"
+	"GameService/repository/models"
 	"encoding/json"
 	"errors"
 	"github.com/dgrijalva/jwt-go"
@@ -10,9 +10,9 @@ import (
 	"github.com/google/uuid"
 )
 
-type UserService struct{ apiKey string }
+type UserRepo struct{ apiKey string }
 
-func (s *UserService) GetCreatorPlan(id uuid.UUID) (plan models.UserPlan, err error) {
+func (s *UserRepo) GetCreatorPlan(id uuid.UUID) (plan models.UserPlan, err error) {
 	client := resty.New()
 	resp, err := client.R().
 		SetHeader("X-API-Key", s.apiKey).SetPathParam("id", id.String()).Get(endpoints.GetUserActivePlanURL)
@@ -24,7 +24,7 @@ func (s *UserService) GetCreatorPlan(id uuid.UUID) (plan models.UserPlan, err er
 	return plan, err
 }
 
-func (s *UserService) GetUserById(id uuid.UUID) (user models.User, err error) {
+func (s *UserRepo) GetUserById(id uuid.UUID) (user models.User, err error) {
 	client := resty.New()
 	resp, err := client.R().
 		SetHeader("X-API-Key", s.apiKey).SetPathParam("id", id.String()).Get(endpoints.GetUserByIdURL)
@@ -52,7 +52,7 @@ type tokenClaims struct {
 	Role   string    `json:"access"`
 }
 
-func (s *UserService) ParseToken(accessToken string) (id uuid.UUID, access string, err error) {
+func (s *UserRepo) ParseToken(accessToken string) (id uuid.UUID, access string, err error) {
 	token, err := jwt.ParseWithClaims(accessToken, &tokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("invalid signing method")
@@ -73,6 +73,6 @@ func (s *UserService) ParseToken(accessToken string) (id uuid.UUID, access strin
 
 }
 
-func NewUserService(apiKey string) *UserService {
-	return &UserService{apiKey: apiKey}
+func NewUserService(apiKey string) *UserRepo {
+	return &UserRepo{apiKey: apiKey}
 }

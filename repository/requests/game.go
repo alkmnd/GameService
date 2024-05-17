@@ -1,22 +1,22 @@
 package requests
 
 import (
-	"GameService/connectteam_service/endpoints"
-	"GameService/connectteam_service/models"
+	"GameService/repository/endpoints"
+	"GameService/repository/models"
 	"encoding/json"
 	"github.com/go-resty/resty/v2"
 	"github.com/google/uuid"
 )
 
-type GameService struct {
+type GameRepo struct {
 	apiKey string
 }
 
-func NewGameService(apiKey string) Game {
-	return &GameService{apiKey: apiKey}
+func NewGameRepo(apiKey string) Game {
+	return &GameRepo{apiKey: apiKey}
 }
 
-func (s *GameService) SaveResults(id uuid.UUID, results map[uuid.UUID]models.Rates) error {
+func (s *GameRepo) SaveResults(id uuid.UUID, results map[uuid.UUID]models.Rates) error {
 	client := resty.New()
 	var _, err = client.R().
 		SetHeader("X-API-Key", s.apiKey).
@@ -29,7 +29,7 @@ func (s *GameService) SaveResults(id uuid.UUID, results map[uuid.UUID]models.Rat
 	return nil
 }
 
-func (s *GameService) EndGame(id uuid.UUID) error {
+func (s *GameRepo) EndGame(id uuid.UUID) error {
 	client := resty.New()
 	var _, err = client.R().
 		SetHeader("X-API-Key", s.apiKey).
@@ -41,7 +41,7 @@ func (s *GameService) EndGame(id uuid.UUID) error {
 	return nil
 }
 
-func (s *GameService) StartGame(id uuid.UUID) error {
+func (s *GameRepo) StartGame(id uuid.UUID) error {
 	client := resty.New()
 	var _, err = client.R().
 		SetHeader("X-API-Key", s.apiKey).
@@ -53,7 +53,7 @@ func (s *GameService) StartGame(id uuid.UUID) error {
 	return nil
 }
 
-func (s *GameService) GetGame(id uuid.UUID) (game models.Game, err error) {
+func (s *GameRepo) GetGame(id uuid.UUID) (game models.Game, err error) {
 	client := resty.New()
 	resp, err := client.R().
 		SetHeader("X-API-Key", s.apiKey).SetPathParam("id", id.String()).Get(endpoints.GetGameURL)

@@ -1,23 +1,23 @@
 package requests
 
 import (
-	"GameService/connectteam_service/endpoints"
-	"GameService/connectteam_service/models"
+	"GameService/repository/endpoints"
+	"GameService/repository/models"
 	"encoding/json"
 	"github.com/go-resty/resty/v2"
 	"github.com/google/uuid"
 	"strconv"
 )
 
-type TopicService struct {
+type TopicRepo struct {
 	apiKey string
 }
 
-func NewTopicService(apiKey string) Topic {
-	return &TopicService{apiKey: apiKey}
+func NewTopicRepo(apiKey string) Topic {
+	return &TopicRepo{apiKey: apiKey}
 }
 
-func (s *TopicService) GetRandQuestionsWithLimit(topicId uuid.UUID, limit int) (questions []models.Question, _ error) {
+func (s *TopicRepo) GetRandQuestionsWithLimit(topicId uuid.UUID, limit int) (questions []models.Question, _ error) {
 	client := resty.New()
 	println(topicId.String())
 	var resp, err = client.R().
@@ -40,7 +40,7 @@ func (s *TopicService) GetRandQuestionsWithLimit(topicId uuid.UUID, limit int) (
 	return questions, err
 }
 
-func (s *TopicService) GetRandTopicsWithLimit(limit int) (questions []models.Topic, err error) {
+func (s *TopicRepo) GetRandTopicsWithLimit(limit int) (questions []models.Topic, err error) {
 	client := resty.New()
 	resp, err := client.R().
 		SetHeader("X-API-Key", s.apiKey).SetPathParam("limit", strconv.Itoa(limit)).Get(endpoints.GetRandTopicsURL)
@@ -55,7 +55,7 @@ func (s *TopicService) GetRandTopicsWithLimit(limit int) (questions []models.Top
 
 	return questions, err
 }
-func (s *TopicService) GetTopic(id uuid.UUID) (topic models.Topic, err error) {
+func (s *TopicRepo) GetTopic(id uuid.UUID) (topic models.Topic, err error) {
 	topic.Id = id
 	client := resty.New()
 	resp, err := client.R().

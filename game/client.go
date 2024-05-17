@@ -1,7 +1,7 @@
 package game
 
 import (
-	"GameService/connectteam_service/models"
+	"GameService/repository/models"
 	"encoding/json"
 	"fmt"
 
@@ -10,7 +10,6 @@ import (
 	"github.com/ledongthuc/goterators"
 	"log"
 	"net/http"
-	//"encoding/binary"
 	"time"
 )
 
@@ -28,14 +27,15 @@ type User struct {
 }
 
 type Client struct {
+	ID uuid.UUID
 	// The actual websocket connection.
-	ID       uuid.UUID
 	conn     *websocket.Conn
 	wsServer *WsServer
 	send     chan []byte
 	User     *User
 }
 
+// newClient creates a new client.
 func newClient(conn *websocket.Conn, wsServer *WsServer, user User) *Client {
 	return &Client{
 		ID:       uuid.New(),
@@ -61,12 +61,6 @@ func (client *Client) disconnect() {
 
 // ServeWs handles websocket requests from Clients requests.
 func ServeWs(wsServer *WsServer, w http.ResponseWriter, r *http.Request) {
-	//name, ok := r.URL.Query()["name"]
-	//
-	//if !ok || len(name[0]) < 1 {
-	//	log.Println("Url Param 'name' is missing")
-	//	return
-	//}
 
 	token, ok := r.URL.Query()["token"]
 
@@ -223,8 +217,43 @@ func (client *Client) handleNewMessage(jsonMessage []byte) {
 		client.handleStartStageMessage(message)
 	case EndGameAction:
 		client.handleEndGameMessage(message)
+	case DeleteUserAction:
+		client.handleDeleteUserAction(message)
 	}
 
+}
+
+func (client *Client) handleDeleteUserAction(message Message) {
+	game := client.wsServer.findGame(message.Target)
+	if game.getCreator() != client.User.Id {
+		var messageError Message
+		messageError.Action = Error
+		messageError.Target = message.Target
+		messageError.Payload = ErrorMessage{
+			Code:    8,
+			Message: "permission denied",
+		}
+		client.send <- messageError.encode()
+		return
+	}
+	var userId uuid.UUID
+	jsonPayload, err := json.Marshal(message.Payload)
+	if err != nil {
+		return
+	}
+	err = json.Unmarshal(jsonPayload, &userId)
+	for i, _ := range game.Clients {
+		if i.User.Id == userId {
+			game.unregister <- i
+			break
+		}
+	}
+	var messageSend Message
+	messageSend.Action = UserDeletedAction
+	messageSend.Sender = client.User
+	messageSend.Target = game.ID
+	messageSend.Payload = game.Users
+	game.broadcast <- &messageSend
 }
 
 type ratePayload struct {
@@ -236,6 +265,10 @@ type ratePayload struct {
 func (client *Client) handleEndGameMessage(message Message) {
 	gameId := message.Target
 	game := client.wsServer.findGame(gameId)
+
+	if game == nil {
+		return
+	}
 
 	if game.getCreator() != client.User.Id {
 		var messageError Message
@@ -249,9 +282,8 @@ func (client *Client) handleEndGameMessage(message Message) {
 		return
 	}
 
-	game.Status = "ended"
-
 	game.endGame()
+	_ = client.wsServer.service.EndGame(game.ID)
 	results := make(map[uuid.UUID]models.Rates)
 	for i, v := range game.Results {
 		tags := make([]uuid.UUID, len(v.Tags))
@@ -263,10 +295,11 @@ func (client *Client) handleEndGameMessage(message Message) {
 			Tags:  tags,
 		}
 	}
-	//_ = client.wsServer.service.SaveResults(gameId, results)
+
 	game.broadcast <- &Message{
-		Action: EndGameAction,
+		Action: EndedAction,
 		Target: game.ID,
+		Time:   time.Now(),
 	}
 
 	return
@@ -308,7 +341,7 @@ func (client *Client) handleStartStageMessage(message Message) {
 		_ = client.wsServer.service.SaveResults(gameId, results)
 		_ = client.wsServer.service.EndGame(gameId)
 		game.broadcast <- &Message{
-			Action: EndGameAction,
+			Action: EndedAction,
 			Target: game.ID,
 		}
 
@@ -483,7 +516,7 @@ func (client *Client) handleStartRoundMessage(message Message) {
 		_ = client.wsServer.service.SaveResults(gameId, results)
 		_ = client.wsServer.service.EndGame(game.ID)
 		game.broadcast <- &Message{
-			Action: EndGameAction,
+			Action: EndedAction,
 			Target: game.ID,
 		}
 		return
@@ -617,6 +650,14 @@ func (client *Client) handleStartGameMessage(message Message) {
 		return
 	}
 
+	var meetingNumber string
+	jsonPayload, err := json.Marshal(message.Payload)
+	if err != nil {
+		return
+	}
+	_ = json.Unmarshal(jsonPayload, &meetingNumber)
+	meetingJWT, _ := client.wsServer.generator.GenerateJWTForMeeting(meetingNumber)
+	game.MeetingJWT = meetingJWT
 	questions := make(map[uuid.UUID][]models.Question)
 
 	for i, _ := range game.Topics {
@@ -624,6 +665,18 @@ func (client *Client) handleStartGameMessage(message Message) {
 		questions[game.Topics[i].Id], err = client.wsServer.service.GetRandQuestionsWithLimit(game.Topics[i].Id, len(game.Users))
 		if err != nil {
 			continue
+		}
+		if len(questions[game.Topics[i].Id]) != len(game.Users) {
+			var messageError Message
+			messageError.Action = Error
+			messageError.Target = message.Target
+			messageError.Payload = ErrorMessage{
+				Code:    4,
+				Message: fmt.Sprintf("not enough question to start game"),
+			}
+			messageError.Time = time.Now()
+			client.send <- messageError.encode()
+			return
 		}
 		game.Topics[i].Questions = make([]Question, len(game.Users))
 		for j := 0; j < len(game.Users); j++ {
@@ -645,7 +698,7 @@ func (client *Client) handleStartGameMessage(message Message) {
 		}
 	}
 
-	err := client.wsServer.service.StartGame(gameId)
+	err = client.wsServer.service.StartGame(gameId)
 	if err != nil {
 		var messageError Message
 		messageError.Action = Error
@@ -764,6 +817,16 @@ func (client *Client) handleJoinGameMessage(message Message) {
 	gameId := message.Target
 	game := client.wsServer.findGame(gameId)
 	if game == nil {
+		message := &Message{
+			Action: Error,
+			Target: message.Target,
+			Payload: ErrorMessage{
+				Code:    2,
+				Message: "cannot join game",
+			},
+			Time: time.Now(),
+		}
+		game.notifyClient(client, message)
 		return
 	}
 

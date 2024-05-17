@@ -1,8 +1,8 @@
 package main
 
 import (
-	"GameService/connectteam_service/requests"
 	"GameService/game"
+	"GameService/repository/requests"
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
 	"net/http"
@@ -11,9 +11,6 @@ import (
 )
 
 func main() {
-	//if err := initConfig(); err != nil {
-	//	logrus.Fatalf("error")
-	//}
 
 	if err := godotenv.Load(); err != nil {
 		logrus.Fatalf("error")
@@ -21,8 +18,11 @@ func main() {
 
 	httpService := requests.NewHTTPService(os.Getenv("HTTP_SERVICE_API_KEY"))
 
-	wsServer := game.NewWebsocketServer(httpService)
+	zoomSDKKey := os.Getenv("ZOOM_SDK_KEY")
+	zoomSDKSecret := os.Getenv("ZOOM_SDK_SECRET")
+	generator := game.NewJWTGenerator(zoomSDKKey, zoomSDKSecret)
 
+	wsServer := game.NewWebsocketServer(httpService, generator)
 	var wg sync.WaitGroup
 	wg.Add(2)
 

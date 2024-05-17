@@ -1,11 +1,11 @@
 package requests
 
 import (
-	"GameService/connectteam_service/models"
+	"GameService/repository/models"
 	"github.com/google/uuid"
 )
 
-type HTTPService struct {
+type Repository struct {
 	Game
 	User
 	Topic
@@ -29,10 +29,10 @@ type User interface {
 	GetCreatorPlan(id uuid.UUID) (plan models.UserPlan, err error)
 }
 
-func NewHTTPService(apiKey string) *HTTPService {
-	return &HTTPService{
-		Game:  NewGameService(apiKey),
+func NewHTTPService(apiKey string) *Repository {
+	return &Repository{
+		Game:  NewGameRepo(apiKey),
 		User:  NewUserService(apiKey),
-		Topic: NewTopicService(apiKey),
+		Topic: NewTopicRepo(apiKey),
 	}
 }

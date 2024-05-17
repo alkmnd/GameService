@@ -20,16 +20,18 @@ const UserStartAnswerAction = "start-answer"
 const UserEndAnswerAction = "end-answer"
 const RateAction = "rate-user"
 const RateEndAction = "rate-end"
-const EndGameAction = "game-end"
+const EndedAction = "game-end"
+const EndGameAction = "end-game"
 const StartStageAction = "start-stage"
-
+const DeleteUserAction = "delete-user"
+const UserDeletedAction = "user-deleted"
 const UserLeftAction = "user-left"
 
 type Message struct {
 	Action  string      `json:"action"`
 	Payload interface{} `json:"payload,omitempty"`
 	Target  uuid.UUID   `json:"target"`
-	Sender  *User       `json:"sender"`
+	Sender  *User       `json:"sender,omitempty"`
 	Time    time.Time   `json:"time,omitempty"`
 }
 
@@ -46,5 +48,3 @@ type ErrorMessage struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 }
-
-
