@@ -8,20 +8,21 @@ import (
 )
 
 type Game struct {
-	Name       string           `json:"name,omitempty"`
-	Clients    map[*Client]bool `json:"-"`
-	MaxSize    int              `json:"max_size,omitempty"`
-	Status     string           `json:"status,omitempty"`
-	Creator    uuid.UUID        `json:"creator_id,omitempty"`
-	Topics     []Topic          `json:"topics,omitempty"`
-	Round      *Round           `json:"round,omitempty"`
-	MeetingJWT string           `json:"meeting_jwt"`
-	register   chan *Client
-	unregister chan *Client
-	broadcast  chan *Message
-	ID         uuid.UUID            `json:"id"`
-	Users      []*User              `json:"users,omitempty"`
-	Results    map[uuid.UUID]*Rates `json:"-"`
+	Name          string           `json:"name,omitempty"`
+	Clients       map[*Client]bool `json:"-"`
+	MaxSize       int              `json:"max_size,omitempty"`
+	Status        string           `json:"status,omitempty"`
+	Creator       uuid.UUID        `json:"creator_id,omitempty"`
+	Topics        []Topic          `json:"topics,omitempty"`
+	Round         *Round           `json:"round,omitempty"`
+	MeetingJWT    string           `json:"meeting_jwt"`
+	MeetingNumber string           `json:"meeting_number"`
+	register      chan *Client
+	unregister    chan *Client
+	broadcast     chan *Message
+	ID            uuid.UUID            `json:"id"`
+	Users         []*User              `json:"users,omitempty"`
+	Results       map[uuid.UUID]*Rates `json:"-"`
 }
 
 // UserQuestion Генерируются в начале раунда.
