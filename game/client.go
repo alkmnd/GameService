@@ -657,6 +657,7 @@ func (client *Client) handleStartGameMessage(message Message) {
 	}
 	_ = json.Unmarshal(jsonPayload, &meetingNumber)
 	meetingJWT, _ := client.wsServer.generator.GenerateJWTForMeeting(meetingNumber)
+	game.MeetingNumber = meetingNumber
 	game.MeetingJWT = meetingJWT
 	questions := make(map[uuid.UUID][]models.Question)
 
