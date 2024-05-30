@@ -21,13 +21,13 @@ func NewJWTGenerator(zoomSDKKey string, zoomSDKSecret string) *JWTGenerator {
 }
 
 // GenerateJWTForMeeting генерирует JWT токен для конференции.
-func (generator *JWTGenerator) GenerateJWTForMeeting(meetingNumber string) (string, error) {
+func (generator *JWTGenerator) GenerateJWTForMeeting(meetingNumber string, role int) (string, error) {
 	// Определение утверждения токена.
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"appKey":   generator.zoomSDKKey,
 		"sdkKey":   generator.zoomSDKKey,
 		"mn":       meetingNumber,
-		"role":     0,
+		"role":     role,
 		"iat":      time.Now().Unix() - 30,
 		"exp":      time.Now().Unix() + 3600,
 		"tokenExp": time.Now().Unix() + 7200,
