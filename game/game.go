@@ -3,26 +3,23 @@ package game
 import (
 	"GameService/repository/models"
 	"github.com/google/uuid"
-	"log"
 	"time"
 )
 
 type Game struct {
-	Name          string           `json:"name,omitempty"`
-	Clients       map[*Client]bool `json:"-"`
-	MaxSize       int              `json:"max_size,omitempty"`
-	Status        string           `json:"status,omitempty"`
-	Creator       uuid.UUID        `json:"creator_id,omitempty"`
-	Topics        []Topic          `json:"topics,omitempty"`
-	Round         *Round           `json:"round,omitempty"`
-	MeetingJWT    string           `json:"meeting_jwt"`
-	MeetingNumber string           `json:"meeting_number"`
-	register      chan *Client
-	unregister    chan *Client
-	broadcast     chan *Message
-	ID            uuid.UUID            `json:"id"`
-	Users         []*User              `json:"users,omitempty"`
-	Results       map[uuid.UUID]*Rates `json:"-"`
+	Name       string           `json:"name,omitempty"`
+	Clients    map[*Client]bool `json:"-"`
+	MaxSize    int              `json:"max_size,omitempty"`
+	Status     string           `json:"status,omitempty"`
+	Creator    uuid.UUID        `json:"creator_id,omitempty"`
+	Topics     []Topic          `json:"topics,omitempty"`
+	Round      *Round           `json:"round,omitempty"`
+	register   chan *Client
+	unregister chan *Client
+	broadcast  chan *Message
+	ID         uuid.UUID            `json:"id"`
+	Users      []*User              `json:"users,omitempty"`
+	Results    map[uuid.UUID]*Rates `json:"-"`
 }
 
 // UserQuestion Генерируются в начале раунда.
@@ -205,7 +202,6 @@ func (game *Game) unregisterClientInGame(client *Client) {
 
 func (game *Game) broadcastToClientsInGame(message []byte) {
 	for client := range game.Clients {
-		log.Printf("broadcast message to client %s", client.GetName())
 		client.send <- message
 	}
 }

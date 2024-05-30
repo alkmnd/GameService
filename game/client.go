@@ -611,6 +611,13 @@ func (client *Client) handleStartRoundMessage(message Message) {
 	game.broadcast <- messageSend
 }
 
+type startGameMessage struct {
+	Game          Game   `json:"game"`
+	MeetingNumber string `json:"meeting_number"`
+	Passcode      string `json:"passcode"`
+	Token         string `json:"token"`
+}
+
 func (client *Client) handleStartGameMessage(message Message) {
 	var messageSend Message
 	gameId := message.Target
@@ -653,15 +660,21 @@ func (client *Client) handleStartGameMessage(message Message) {
 		return
 	}
 
-	var meetingNumber string
-	jsonPayload, err := json.Marshal(message.Payload)
+	meetingNumber, passcode, err := client.wsServer.service.Meeting.CreateMeeting()
 	if err != nil {
+		var messageError Message
+		messageError.Action = Error
+		messageError.Target = message.Target
+		messageError.Payload = ErrorMessage{
+			Code:    4,
+			Message: fmt.Sprintf("error to start game: %s", err.Error()),
+		}
+		messageError.Time = time.Now()
+		client.send <- messageError.encode()
 		return
 	}
-	_ = json.Unmarshal(jsonPayload, &meetingNumber)
-	meetingJWT, _ := client.wsServer.generator.GenerateJWTForMeeting(meetingNumber)
-	game.MeetingNumber = meetingNumber
-	game.MeetingJWT = meetingJWT
+	meetingJWT, _ := client.wsServer.generator.GenerateJWTForMeeting(meetingNumber, 0)
+
 	questions := make(map[uuid.UUID][]models.Question)
 
 	for i, _ := range game.Topics {
@@ -716,13 +729,27 @@ func (client *Client) handleStartGameMessage(message Message) {
 		return
 	}
 
+	var payload = &startGameMessage{
+		Game:          *game,
+		MeetingNumber: meetingNumber,
+		Passcode:      passcode,
+		Token:         meetingJWT,
+	}
+
+	hostMeetingJWT, _ := client.wsServer.generator.GenerateJWTForMeeting(meetingNumber, 1)
+
 	game.Status = "in_progress"
 	messageSend.Action = StartGameAction
 	messageSend.Target = game.ID
 	messageSend.Sender = message.Sender
 	messageSend.Time = time.Now()
-	messageSend.Payload = game
-	game.broadcast <- &messageSend
+	messageSend.Payload = &payload
+	for client := range game.Clients {
+		if client.User.Id == game.Creator {
+			payload.Token = hostMeetingJWT
+		}
+		game.notifyClient(client, &messageSend)
+	}
 }
 
 func (client *Client) handleSelectTopicGameMessage(message Message) {

@@ -16,10 +16,11 @@ func main() {
 		logrus.Fatalf("error")
 	}
 
-	httpService := requests.NewHTTPService(os.Getenv("HTTP_SERVICE_API_KEY"))
-
 	zoomSDKKey := os.Getenv("ZOOM_SDK_KEY")
 	zoomSDKSecret := os.Getenv("ZOOM_SDK_SECRET")
+	httpService := requests.NewHTTPService(os.Getenv("HTTP_SERVICE_API_KEY"),
+		os.Getenv("ZOOM_API_ACCESS_TOKEN"),
+		os.Getenv("ZOOM_API_REFRESH_TOKEN"), zoomSDKKey, zoomSDKSecret)
 	generator := game.NewJWTGenerator(zoomSDKKey, zoomSDKSecret)
 
 	wsServer := game.NewWebsocketServer(httpService, generator)

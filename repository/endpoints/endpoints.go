@@ -2,6 +2,7 @@ package endpoints
 
 const (
 	BaseURL              = "http://localhost:8001"
+	ZoomApiBaseURL       = "https://api.zoom.us/v2"
 	GetGameURL           = BaseURL + "/api/games/{id}"
 	StartGameURL         = BaseURL + "/api/games/start/{id}"
 	EndGameURL           = BaseURL + "/api/games/end/{id}"
@@ -11,4 +12,6 @@ const (
 	GetTopicWithIdURL    = BaseURL + "/api/topics/{id}"
 	GetRandQuestionsURL  = BaseURL + "/api/questions/"
 	GetRandTopicsURL     = BaseURL + "/api/topics/list/{limit}"
+	CreateMeetingURL     = ZoomApiBaseURL + "/users/{user_id}/meetings"
+	RefreshTokenURL      = "https://zoom.us/oauth/token"
 )
