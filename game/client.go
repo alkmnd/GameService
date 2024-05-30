@@ -733,7 +733,6 @@ func (client *Client) handleStartGameMessage(message Message) {
 		Game:          *game,
 		MeetingNumber: meetingNumber,
 		Passcode:      passcode,
-		Token:         meetingJWT,
 	}
 
 	hostMeetingJWT, _ := client.wsServer.generator.GenerateJWTForMeeting(meetingNumber, 1)
@@ -745,8 +744,11 @@ func (client *Client) handleStartGameMessage(message Message) {
 	messageSend.Time = time.Now()
 	messageSend.Payload = &payload
 	for client := range game.Clients {
+
 		if client.User.Id == game.Creator {
 			payload.Token = hostMeetingJWT
+		} else {
+			payload.Token = meetingJWT
 		}
 		game.notifyClient(client, &messageSend)
 	}
