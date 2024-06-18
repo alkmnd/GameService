@@ -5,12 +5,17 @@ import (
 	"GameService/repository/requests"
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"net/http"
 	"os"
 	"sync"
 )
 
 func main() {
+
+	if err := initConfig(); err != nil {
+		logrus.Fatalf("error")
+	}
 
 	if err := godotenv.Load(); err != nil {
 		logrus.Fatalf("error")
@@ -36,9 +41,15 @@ func main() {
 		http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 			game.ServeWs(wsServer, w, r)
 		})
-		http.ListenAndServe(":8080", nil)
+		http.ListenAndServe(viper.GetString("port"), nil)
 	}()
 
 	wg.Wait()
 
+}
+
+func initConfig() error {
+	viper.AddConfigPath("configs")
+	viper.SetConfigName("config")
+	return viper.ReadInConfig()
 }
