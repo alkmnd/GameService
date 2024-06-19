@@ -16,6 +16,7 @@ func main() {
 		logrus.Fatalf("error")
 	}
 
+	logrus.Println("Starting...")
 	httpService := requests.NewHTTPService(os.Getenv("HTTP_SERVICE_API_KEY"))
 
 	zoomSDKKey := os.Getenv("ZOOM_SDK_KEY")
