@@ -37,7 +37,7 @@ func main() {
 			game.ServeWs(wsServer, w, r)
 		})
 		http.ListenAndServe(":8080", nil)
-		logrus.Println('ListenAndServe 8080')
+		logrus.Println("ListenAndServe 8080")
 	}()
 
 	wg.Wait()
