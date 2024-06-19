@@ -1,7 +1,7 @@
 package endpoints
 
 const (
-	BaseURL              = "http://localhost:8001"
+	BaseURL              = "https://api.connecteam.ru"
 	GetGameURL           = BaseURL + "/api/games/{id}"
 	StartGameURL         = BaseURL + "/api/games/start/{id}"
 	EndGameURL           = BaseURL + "/api/games/end/{id}"
