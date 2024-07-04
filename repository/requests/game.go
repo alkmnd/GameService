@@ -60,7 +60,9 @@ func (s *GameRepo) GetGame(id uuid.UUID) (game models.Game, err error) {
 		SetHeader("X-API-Key", s.apiKey).SetPathParam("id", id.String()).Get(endpoints.GetGameURL)
 
 	// Вывод тела ответа в виде строки
-	fmt.Printf("Error: %s\n", string(err.Error()))
+	if err != nil {
+		fmt.Printf("Error during request: %v\n", err)
+	}
 	fmt.Printf("API Response Body: %s\n", string(resp.Body()))
 
 	// Вывод статуса ответа
