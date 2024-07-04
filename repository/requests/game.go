@@ -4,6 +4,7 @@ import (
 	"GameService/repository/endpoints"
 	"GameService/repository/models"
 	"encoding/json"
+	"fmt"
 	"github.com/go-resty/resty/v2"
 	"github.com/google/uuid"
 )
@@ -57,6 +58,16 @@ func (s *GameRepo) GetGame(id uuid.UUID) (game models.Game, err error) {
 	client := resty.New()
 	resp, err := client.R().
 		SetHeader("X-API-Key", s.apiKey).SetPathParam("id", id.String()).Get(endpoints.GetGameURL)
+
+	// Вывод тела ответа в виде строки
+	fmt.Printf("API Response Body: %s\n", string(resp.Body()))
+
+	// Вывод статуса ответа
+	fmt.Printf("API Response Status: %s\n", resp.Status())
+
+	// Вывод заголовков ответа
+	fmt.Printf("API Response Headers: %v\n", resp.Header())
+
 	if err != nil {
 		return game, err
 	}
