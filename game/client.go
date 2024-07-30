@@ -94,6 +94,7 @@ func ServeWs(wsServer *WsServer, w http.ResponseWriter, r *http.Request) {
 			Id:   userId,
 			Name: userName,
 		}, false)
+
 	} else if len(token[0]) > 0 {
 		id, access, err := wsServer.service.ParseToken(token[0])
 		if err != nil {
@@ -121,6 +122,8 @@ func ServeWs(wsServer *WsServer, w http.ResponseWriter, r *http.Request) {
 		}, true)
 
 	}
+
+	logrus.Println(fmt.Sprintf("user %s successfully connected", userId))
 
 	go client.writePump()
 	go client.readPump()
