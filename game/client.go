@@ -86,7 +86,7 @@ func ServeWs(wsServer *WsServer, w http.ResponseWriter, r *http.Request) {
 		userId = uuid.New()
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
-			logrus.Println(err)
+			logrus.Println(fmt.Sprintf("error when upgade: %s", err))
 			return
 		}
 
@@ -874,7 +874,6 @@ func (client *Client) handleSelectTopicGameMessage(message Message) {
 }
 
 func (client *Client) handleJoinGameMessage(message Message) {
-
 	gameId := message.Target
 	game := client.wsServer.findGame(gameId)
 	if game == nil {
@@ -890,7 +889,6 @@ func (client *Client) handleJoinGameMessage(message Message) {
 		game.notifyClient(client, message)
 		return
 	}
-
 	game.register <- client
 }
 
