@@ -111,10 +111,6 @@ func (game *Game) notifyClientJoined(client *Client) {
 	game.broadcastToClientsInGame(message.encode())
 }
 
-func (game *Game) notifyClient(client *Client, message *Message) {
-	client.send <- message.encode()
-}
-
 func (game *Game) registerClientInGame(client *Client) {
 	if len(game.Users) == game.MaxSize {
 		message := Message{
@@ -139,7 +135,7 @@ func (game *Game) registerClientInGame(client *Client) {
 				Sender:  client.User,
 			}
 
-			game.notifyClient(client, message)
+			client.notifyClient(message)
 			game.Clients[client] = true
 			return
 		}
@@ -155,7 +151,7 @@ func (game *Game) registerClientInGame(client *Client) {
 			},
 			Sender: client.User,
 		}
-		game.notifyClient(client, message)
+		client.notifyClient(message)
 		return
 	}
 
@@ -170,7 +166,7 @@ func (game *Game) registerClientInGame(client *Client) {
 	game.Users = append(game.Users, client.User)
 	game.notifyClientJoined(client)
 	game.Clients[client] = true
-	game.notifyClient(client, message)
+	client.notifyClient(message)
 	return
 }
 

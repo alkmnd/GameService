@@ -781,7 +781,7 @@ func (client *Client) handleStartGameMessage(message Message) {
 		if client.User.Id == game.Creator {
 			payload.Token = hostMeetingJWT
 		}
-		game.notifyClient(client, &messageSend)
+		client.notifyClient(&messageSend)
 	}
 }
 
@@ -818,7 +818,7 @@ func (client *Client) handleSelectTopicGameMessage(message Message) {
 	case "basic":
 		topics, _ := client.wsServer.service.GetRandTopicsWithLimit(3)
 		game.setTopics(topics)
-		game.notifyClient(client, &Message{
+		client.notifyClient(&Message{
 			Action:  message.Action,
 			Payload: game.Topics,
 			Target:  game.ID,
@@ -842,7 +842,7 @@ func (client *Client) handleSelectTopicGameMessage(message Message) {
 				topics = append(topics, topic)
 			}
 			game.setTopics(topics)
-			game.notifyClient(client, &Message{
+			client.notifyClient(&Message{
 				Action:  message.Action,
 				Payload: game.Topics,
 				Target:  game.ID,
@@ -885,14 +885,18 @@ func (client *Client) handleJoinGameMessage(message Message) {
 			Target: message.Target,
 			Payload: ErrorMessage{
 				Code:    2,
-				Message: "cannot join game",
+				Message: fmt.Sprintf("user %s cannot join the game %s", client.User.Id, game.ID),
 			},
 			Time: time.Now(),
 		}
-		game.notifyClient(client, message)
+		client.notifyClient(message)
 		return
 	}
 	game.register <- client
+}
+
+func (client *Client) notifyClient(message *Message) {
+	client.send <- message.encode()
 }
 
 func (client *Client) handleLeaveGameMessage(message Message) {
