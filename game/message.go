@@ -35,6 +35,14 @@ type Message struct {
 	Time    time.Time   `json:"time,omitempty"`
 }
 
+func NewMessage(action string,
+	payload interface{},
+	target uuid.UUID,
+	sender *User,
+	time time.Time) {
+
+}
+
 func (message *Message) encode() []byte {
 	messageJson, err := json.Marshal(message)
 	if err != nil {

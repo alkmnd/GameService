@@ -4,6 +4,7 @@ import (
 	"GameService/repository/models"
 	"encoding/json"
 	"fmt"
+	"github.com/sirupsen/logrus"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -29,20 +30,22 @@ type User struct {
 type Client struct {
 	ID uuid.UUID
 	// The actual websocket connection.
-	conn     *websocket.Conn
-	wsServer *WsServer
-	send     chan []byte
-	User     *User
+	conn       *websocket.Conn
+	wsServer   *WsServer
+	send       chan []byte
+	Authorized bool
+	User       *User
 }
 
 // newClient creates a new client.
-func newClient(conn *websocket.Conn, wsServer *WsServer, user User) *Client {
+func newClient(conn *websocket.Conn, wsServer *WsServer, user User, authorized bool) *Client {
 	return &Client{
-		ID:       uuid.New(),
-		User:     &user,
-		conn:     conn,
-		wsServer: wsServer,
-		send:     make(chan []byte, 256),
+		ID:         uuid.New(),
+		User:       &user,
+		conn:       conn,
+		wsServer:   wsServer,
+		send:       make(chan []byte, 256),
+		Authorized: authorized,
 	}
 
 }
@@ -64,33 +67,60 @@ func ServeWs(wsServer *WsServer, w http.ResponseWriter, r *http.Request) {
 
 	token, ok := r.URL.Query()["token"]
 
-	if !ok || len(token[0]) < 1 {
-		log.Println("Url Param '' is missing")
-		return
+	var userId uuid.UUID
+	var userName string
+	var client *Client
+	if !ok {
+		name, ok := r.URL.Query()["name"]
+		if !ok {
+			logrus.Println("wrong URL query")
+			return
+		}
+
+		if len(name[0]) < 0 {
+			logrus.Println("wrong param 'name'")
+			return
+		}
+
+		userName = name[0]
+		userId = uuid.New()
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			logrus.Println(err)
+			return
+		}
+
+		client = newClient(conn, wsServer, User{
+			Id:   userId,
+			Name: userName,
+		}, false)
+	} else if len(token[0]) > 0 {
+		id, access, err := wsServer.service.ParseToken(token[0])
+		if err != nil {
+			logrus.Println(fmt.Sprintf("cannot parse token: %s", err.Error()))
+			return
+		}
+
+		if access != "user" {
+			logrus.Println("cannot connect to the server: permission denied")
+			return
+		}
+
+		user, err := wsServer.service.GetUserById(id)
+		userId = user.Id
+		userName = user.FirstName + user.SecondName
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			logrus.Println(err)
+			return
+		}
+
+		client = newClient(conn, wsServer, User{
+			Id:   userId,
+			Name: userName,
+		}, true)
+
 	}
-
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	id, access, err := wsServer.service.ParseToken(token[0])
-	if err != nil {
-		return
-	}
-
-	if access != "user" {
-		return
-	}
-
-	user, err := wsServer.service.GetUserById(id)
-	println(err)
-
-	client := newClient(conn, wsServer, User{
-		Id:   id,
-		Name: fmt.Sprintf("%s %s", user.FirstName, user.SecondName),
-	})
 
 	go client.writePump()
 	go client.readPump()

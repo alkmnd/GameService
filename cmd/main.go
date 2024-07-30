@@ -42,7 +42,13 @@ func main() {
 		http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 			game.ServeWs(wsServer, w, r)
 		})
-		http.ListenAndServe(viper.GetString("port"), nil)
+		port := viper.GetString("port")
+		host := viper.GetString("host")
+		addr := host + ":" + port
+		err := http.ListenAndServe(addr, nil)
+		if err != nil {
+			logrus.Fatalf(err.Error())
+		}
 	}()
 
 	wg.Wait()
@@ -50,7 +56,7 @@ func main() {
 }
 
 func initConfig() error {
-	viper.AddConfigPath("configs")
+	viper.AddConfigPath("config")
 	viper.SetConfigName("config")
 	return viper.ReadInConfig()
 }
