@@ -39,7 +39,14 @@ func NewMessage(action string,
 	payload interface{},
 	target uuid.UUID,
 	sender *User,
-	time time.Time) {
+	time time.Time) *Message {
+	return &Message{
+		Action:  action,
+		Payload: payload,
+		Target:  target,
+		Sender:  sender,
+		Time:    time,
+	}
 
 }
 

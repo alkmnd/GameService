@@ -652,137 +652,10 @@ type startGameMessage struct {
 }
 
 func (client *Client) handleStartGameMessage(message Message) {
-	var messageSend Message
 	gameId := message.Target
 
 	game := client.wsServer.findGame(gameId)
-	if game.getCreator() != client.User.Id {
-		var messageError Message
-		messageError.Action = Error
-		messageError.Target = message.Target
-		messageError.Payload = ErrorMessage{
-			Code:    8,
-			Message: "permission denied",
-		}
-		messageError.Time = time.Now()
-		client.send <- messageError.encode()
-		return
-	}
-	if len(game.Topics) == 0 {
-		var messageError Message
-		messageError.Action = Error
-		messageError.Target = message.Target
-		messageError.Payload = ErrorMessage{
-			Code:    6,
-			Message: "number of topics is 0",
-		}
-		messageError.Time = time.Now()
-		client.send <- messageError.encode()
-		return
-	}
-	if game.Status == "in_progress" || game.Status == "ended" {
-		var messageError Message
-		messageError.Action = Error
-		messageError.Target = message.Target
-		messageError.Payload = ErrorMessage{
-			Code:    5,
-			Message: "game is in progress or ended",
-		}
-		messageError.Time = time.Now()
-		client.send <- messageError.encode()
-		return
-	}
-
-	meetingNumber, passcode, err := client.wsServer.service.Meeting.CreateMeeting()
-	if err != nil {
-		var messageError Message
-		messageError.Action = Error
-		messageError.Target = message.Target
-		messageError.Payload = ErrorMessage{
-			Code:    4,
-			Message: fmt.Sprintf("error to start game: %s", err.Error()),
-		}
-		messageError.Time = time.Now()
-		client.send <- messageError.encode()
-		return
-	}
-	meetingJWT, _ := client.wsServer.generator.GenerateJWTForMeeting(meetingNumber, 0)
-
-	questions := make(map[uuid.UUID][]models.Question)
-
-	for i, _ := range game.Topics {
-		var err error
-		questions[game.Topics[i].Id], err = client.wsServer.service.GetRandQuestionsWithLimit(game.Topics[i].Id, len(game.Users))
-		if err != nil {
-			continue
-		}
-		if len(questions[game.Topics[i].Id]) != len(game.Users) {
-			var messageError Message
-			messageError.Action = Error
-			messageError.Target = message.Target
-			messageError.Payload = ErrorMessage{
-				Code:    4,
-				Message: fmt.Sprintf("not enough question to start game"),
-			}
-			messageError.Time = time.Now()
-			client.send <- messageError.encode()
-			return
-		}
-		game.Topics[i].Questions = make([]Question, len(game.Users))
-		for j := 0; j < len(game.Users); j++ {
-			if questions[game.Topics[i].Id] != nil {
-				tags := make([]Tag, len(questions[game.Topics[i].Id][j].Tags))
-				for k := range questions[game.Topics[i].Id][j].Tags {
-					tags[k] = Tag{
-						Id:   questions[game.Topics[i].Id][j].Tags[k].Id,
-						Name: questions[game.Topics[i].Id][j].Tags[k].Name,
-					}
-				}
-				game.Topics[i].Questions[j] = Question{
-					Id:      questions[game.Topics[i].Id][j].Id,
-					TopicId: questions[game.Topics[i].Id][j].TopicId,
-					Content: questions[game.Topics[i].Id][j].Content,
-					Tags:    tags,
-				}
-			}
-		}
-	}
-
-	err = client.wsServer.service.StartGame(gameId)
-	if err != nil {
-		var messageError Message
-		messageError.Action = Error
-		messageError.Target = message.Target
-		messageError.Payload = ErrorMessage{
-			Code:    4,
-			Message: fmt.Sprintf("error to start game: %s", err.Error()),
-		}
-		messageError.Time = time.Now()
-		client.send <- messageError.encode()
-		return
-	}
-
-	var payload = &startGameMessage{
-		Game:          *game,
-		MeetingNumber: meetingNumber,
-		Passcode:      passcode,
-		Token:         meetingJWT,
-	}
-
-	hostMeetingJWT, _ := client.wsServer.generator.GenerateJWTForMeeting(meetingNumber, 1)
-
-	game.Status = "in_progress"
-	messageSend.Action = StartGameAction
-	messageSend.Target = game.ID
-	messageSend.Sender = message.Sender
-	messageSend.Time = time.Now()
-	messageSend.Payload = &payload
-	for client := range game.Clients {
-		if client.User.Id == game.Creator {
-			payload.Token = hostMeetingJWT
-		}
-		client.notifyClient(&messageSend)
-	}
+	game.startGame(client)
 }
 
 func (client *Client) handleSelectTopicGameMessage(message Message) {
@@ -893,10 +766,21 @@ func (client *Client) handleJoinGameMessage(message Message) {
 		return
 	}
 	game.register <- client
+
 }
 
 func (client *Client) notifyClient(message *Message) {
 	client.send <- message.encode()
+}
+
+func (client *Client) notifyClientJoined(game *Game) {
+	message := &Message{
+		Action:  JoinGameAction,
+		Target:  game.ID,
+		Payload: game,
+		Sender:  client.User,
+	}
+	game.broadcastToClientsInGame(message.encode())
 }
 
 func (client *Client) handleLeaveGameMessage(message Message) {
