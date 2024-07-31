@@ -5,6 +5,7 @@ import (
 	"GameService/repository/models"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/ledongthuc/goterators"
 	"time"
 )
 
@@ -173,6 +174,81 @@ func (game *Game) broadcastToClientsInGame(message []byte) {
 
 func (game *Game) getCreator() uuid.UUID {
 	return game.Creator
+}
+
+func (game *Game) startRound(client *Client, topicId uuid.UUID) {
+	if len(goterators.Filter(game.Topics, func(item Topic) bool {
+		return item.Used == false
+	})) == 0 {
+		game.endGame()
+		results := make(map[uuid.UUID]models.Rates)
+		for i, v := range game.Results {
+			tags := make([]uuid.UUID, len(v.Tags))
+			for k := range v.Tags {
+				tags[k] = v.Tags[k]
+			}
+			results[i] = models.Rates{
+				Value: v.Value,
+				Tags:  tags,
+			}
+		}
+		_ = client.wsServer.service.SaveResults(game.ID, results)
+		_ = client.wsServer.service.EndGame(game.ID)
+		game.broadcast <- &Message{
+			Action: GameEndedAction,
+			Target: game.ID,
+		}
+		return
+	}
+
+	game.Round = &Round{
+		Topic:          uuid.Nil,
+		UsersQuestions: make([]*UserQuestion, 0),
+	}
+
+	var topic *Topic
+
+	for i := range game.Topics {
+		if game.Topics[i].Id == topicId {
+			topic = &game.Topics[i]
+			break
+		}
+	}
+	if topic == nil || topic.Used == true {
+		client.notifyClient(NewMessage(Error, ErrorMessage{
+			Code:    9,
+			Message: "topic is already used",
+		}, game.ID, nil, time.Now()))
+		return
+	}
+	if len(game.Users) != len(topic.Questions) {
+		client.notifyClient(NewMessage(Error, ErrorMessage{
+			Code:    8,
+			Message: "number of users is not equal to number of questions",
+		}, game.ID, nil, time.Now()))
+		return
+	}
+
+	cnt := 1
+	for i := range game.Users {
+		game.Round.UsersQuestions = append(game.Round.UsersQuestions, &UserQuestion{
+			User:     *game.Users[i],
+			Question: topic.Questions[i],
+			Number:   cnt,
+			Rates:    make(map[uuid.UUID]*Rates),
+		})
+		cnt++
+
+	}
+
+	topic.Used = true
+	game.Round.Topic = topic.Id
+	game.broadcast <- &Message{
+		Action:  StartRoundAction,
+		Target:  game.ID,
+		Payload: game.Round.UsersQuestions,
+		Time:    time.Now(),
+	}
 }
 
 func (game *Game) setTopics(topics []models.Topic) {

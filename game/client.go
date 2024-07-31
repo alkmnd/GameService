@@ -331,7 +331,7 @@ func (client *Client) handleEndGameMessage(message Message) {
 	}
 
 	game.broadcast <- &Message{
-		Action: EndedAction,
+		Action: GameEndedAction,
 		Target: game.ID,
 		Time:   time.Now(),
 	}
@@ -375,7 +375,7 @@ func (client *Client) handleStartStageMessage(message Message) {
 		_ = client.wsServer.service.SaveResults(gameId, results)
 		_ = client.wsServer.service.EndGame(gameId)
 		game.broadcast <- &Message{
-			Action: EndedAction,
+			Action: GameEndedAction,
 			Target: game.ID,
 		}
 
@@ -520,129 +520,33 @@ func (client *Client) handleUserStartAnswerMessage(message Message) {
 }
 
 func (client *Client) handleStartRoundMessage(message Message) {
-	var messageSend *Message
 	gameId := message.Target
 	game := client.wsServer.findGame(gameId)
-	if client.User.Id != game.getCreator() {
-		var messageError Message
-		messageError.Action = Error
-		messageError.Target = message.Target
-		messageError.Payload = ErrorMessage{
-			Code:    8,
-			Message: "permission denied",
-		}
-		client.send <- messageError.encode()
+	if game.isCreator(client) {
 		return
-	}
-
-	if len(goterators.Filter(game.Topics, func(item Topic) bool {
-		return item.Used == false
-	})) == 0 {
-		game.endGame()
-		results := make(map[uuid.UUID]models.Rates)
-		for i, v := range game.Results {
-			tags := make([]uuid.UUID, len(v.Tags))
-			for k := range v.Tags {
-				tags[k] = v.Tags[k]
-			}
-			results[i] = models.Rates{
-				Value: v.Value,
-				Tags:  tags,
-			}
-		}
-		_ = client.wsServer.service.SaveResults(gameId, results)
-		_ = client.wsServer.service.EndGame(game.ID)
-		game.broadcast <- &Message{
-			Action: EndedAction,
-			Target: game.ID,
-		}
-		return
-	}
-
-	game.Round = &Round{
-		Topic:          uuid.Nil,
-		UsersQuestions: make([]*UserQuestion, 0),
 	}
 
 	var topicId uuid.UUID
 	if payload, ok := message.Payload.(string); ok {
 		_uuid, err := uuid.Parse(payload)
 		if err != nil {
-			var messageError Message
-			messageError.Action = Error
-			messageError.Target = message.Target
-			messageError.Payload = ErrorMessage{
+			client.notifyClient(NewMessage(Error, ErrorMessage{
 				Code:    9,
 				Message: "incorrect payload",
-			}
-			client.send <- messageError.encode()
+			}, game.ID, nil, time.Now()))
 			return
 		}
 		topicId = _uuid
 	} else {
-		var messageError Message
-		messageError.Action = Error
-		messageError.Target = message.Target
-		messageError.Payload = ErrorMessage{
+		client.notifyClient(NewMessage(Error, ErrorMessage{
 			Code:    9,
 			Message: "incorrect payload",
-		}
-		client.send <- messageError.encode()
-		return
-	}
-	var topic *Topic
-
-	for i := range game.Topics {
-		if game.Topics[i].Id == topicId {
-			topic = &game.Topics[i]
-			break
-		}
-	}
-	if topic == nil || topic.Used == true {
-		var messageError Message
-		messageError.Action = Error
-		messageError.Target = message.Target
-		messageError.Payload = ErrorMessage{
-			Code:    9,
-			Message: "topic is already used",
-		}
-		client.send <- messageError.encode()
-		return
-	}
-	if len(game.Users) != len(topic.Questions) {
-		var messageError Message
-		messageError.Action = Error
-		messageError.Target = message.Target
-		messageError.Payload = ErrorMessage{
-			Code:    8,
-			Message: "number of users is not equal to number of questions",
-		}
-		client.send <- messageError.encode()
+		}, game.ID, nil, time.Now()))
 		return
 	}
 
-	cnt := 1
-	for i := range game.Users {
-		game.Round.UsersQuestions = append(game.Round.UsersQuestions, &UserQuestion{
-			User:     *game.Users[i],
-			Question: topic.Questions[i],
-			Number:   cnt,
-			Rates:    make(map[uuid.UUID]*Rates),
-		})
-		cnt++
+	game.startRound(client, topicId)
 
-	}
-
-	topic.Used = true
-	game.Round.Topic = topic.Id
-
-	messageSend = &Message{
-		Action:  StartRoundAction,
-		Target:  message.Target,
-		Payload: game.Round.UsersQuestions,
-		Time:    time.Now(),
-	}
-	game.broadcast <- messageSend
 }
 
 type startGameMessage struct {
