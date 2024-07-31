@@ -1,6 +1,7 @@
 package game
 
 import (
+	"GameService/consts/plan_types"
 	"GameService/repository/models"
 	"encoding/json"
 	"fmt"
@@ -662,44 +663,37 @@ func (client *Client) handleSelectTopicGameMessage(message Message) {
 	gameId := message.Target
 	game := client.wsServer.findGame(gameId)
 
-	if message.Sender.Id != game.getCreator() {
-		var messageError Message
-		messageError.Action = Error
-		messageError.Target = message.Target
-		messageError.Payload = ErrorMessage{
-			Code:    8,
-			Message: "permission denied",
-		}
-		client.send <- messageError.encode()
+	if !game.isCreator(client) {
 		return
 	}
 
 	userPlan, err := client.wsServer.service.GetCreatorPlan(game.getCreator())
 	if err != nil {
-		var messageError Message
-		messageError.Action = Error
-		messageError.Target = message.Target
-		messageError.Payload = ErrorMessage{
+		client.notifyClient(NewMessage(Error, ErrorMessage{
 			Code:    7,
 			Message: fmt.Sprintf("error to get topics from database: %s", err.Error()),
-		}
-		client.send <- messageError.encode()
+		}, game.ID, nil, time.Now()))
 		return
 	}
 
 	switch userPlan.PlanType {
-	case "basic":
-		topics, _ := client.wsServer.service.GetRandTopicsWithLimit(3)
+	case plan_types.Basic:
+		topics, err := client.wsServer.service.GetRandTopicsWithLimit(3)
+		if err != nil {
+			client.notifyClient(NewMessage(Error, ErrorMessage{
+				Code:    7,
+				Message: fmt.Sprintf("cannot get topics: %s", err.Error()),
+			}, game.ID, nil, time.Now()))
+		}
 		game.setTopics(topics)
-		client.notifyClient(&Message{
-			Action:  message.Action,
-			Payload: game.Topics,
-			Target:  game.ID,
-			Sender:  message.Sender,
-			Time:    time.Now(),
-		})
+		client.notifyClient(NewMessage(
+			message.Action,
+			game.Topics,
+			game.ID,
+			message.Sender,
+			time.Now()))
 		return
-	case "advanced", "premium":
+	case plan_types.Advanced, plan_types.Premium:
 		var topics []models.Topic
 		if payloadData, ok := message.Payload.([]interface{}); ok {
 			for i := range payloadData {
@@ -715,35 +709,26 @@ func (client *Client) handleSelectTopicGameMessage(message Message) {
 				topics = append(topics, topic)
 			}
 			game.setTopics(topics)
-			client.notifyClient(&Message{
-				Action:  message.Action,
-				Payload: game.Topics,
-				Target:  game.ID,
-				Sender:  message.Sender,
-				Time:    time.Now(),
-			})
+			client.notifyClient(NewMessage(
+				message.Action,
+				game.Topics,
+				game.ID,
+				message.Sender,
+				time.Now()))
 			return
 		} else {
-			var messageError Message
-			messageError.Action = Error
-			messageError.Target = message.Target
-			messageError.Payload = ErrorMessage{
+			client.notifyClient(NewMessage(Error, ErrorMessage{
 				Code:    7,
 				Message: "incorrect payload",
-			}
-			client.send <- messageError.encode()
+			}, game.ID, nil, time.Now()))
 			return
 		}
 
 	default:
-		var messageError Message
-		messageError.Action = Error
-		messageError.Target = message.Target
-		messageError.Payload = ErrorMessage{
+		client.notifyClient(NewMessage(Error, ErrorMessage{
 			Code:    7,
 			Message: "cannot get creator plan",
-		}
-		client.send <- messageError.encode()
+		}, game.ID, nil, time.Now()))
 		return
 	}
 

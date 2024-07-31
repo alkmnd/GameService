@@ -188,12 +188,19 @@ func (game *Game) setTopics(topics []models.Topic) {
 	}
 }
 
-func (game *Game) startGame(client *Client) {
+func (game *Game) isCreator(client *Client) bool {
 	if game.getCreator() != client.User.Id {
 		client.notifyClient(NewMessage(Error, ErrorMessage{
 			Code:    8,
 			Message: "permission denied",
 		}, game.ID, nil, time.Now()))
+		return false
+	}
+	return true
+}
+
+func (game *Game) startGame(client *Client) {
+	if !game.isCreator(client) {
 		return
 	}
 	if len(game.Topics) == 0 {

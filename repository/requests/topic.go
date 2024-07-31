@@ -40,20 +40,20 @@ func (s *TopicRepo) GetRandQuestionsWithLimit(topicId uuid.UUID, limit int) (que
 	return questions, err
 }
 
-func (s *TopicRepo) GetRandTopicsWithLimit(limit int) (questions []models.Topic, err error) {
+func (s *TopicRepo) GetRandTopicsWithLimit(limit int) (topics []models.Topic, err error) {
 	client := resty.New()
 	resp, err := client.R().
 		SetHeader("X-API-Key", s.apiKey).SetPathParam("limit", strconv.Itoa(limit)).Get(endpoints.GetRandTopicsURL)
 	if err != nil {
-		return questions, err
+		return topics, err
 	}
 
-	err = json.Unmarshal(resp.Body(), &questions)
+	err = json.Unmarshal(resp.Body(), &topics)
 	if err != nil {
-		return questions, err
+		return topics, err
 	}
 
-	return questions, err
+	return topics, err
 }
 func (s *TopicRepo) GetTopic(id uuid.UUID) (topic models.Topic, err error) {
 	topic.Id = id
