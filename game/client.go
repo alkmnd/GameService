@@ -346,65 +346,12 @@ func (client *Client) handleStartStageMessage(message Message) {
 	game := client.wsServer.findGame(gameId)
 
 	if !game.isCreator(client) {
-		var messageError Message
-		messageError.Action = Error
-		messageError.Target = message.Target
-		messageError.Payload = ErrorMessage{
-			Code:    8,
-			Message: "permission denied",
-		}
-		client.send <- messageError.encode()
 		return
 	}
 
-	if len(goterators.Filter(game.Topics, func(item Topic) bool {
-		return item.Used == false
-	})) == 0 && len(game.Round.UsersQuestions) == 0 {
-		game.endGame()
-		results := make(map[uuid.UUID]models.Rates)
-		for i, v := range game.Results {
-			tags := make([]uuid.UUID, len(v.Tags))
-			for k := range v.Tags {
-				tags[k] = v.Tags[k]
-			}
-			results[i] = models.Rates{
-				Value: v.Value,
-				Tags:  tags,
-			}
-		}
-		_ = client.wsServer.service.SaveResults(gameId, results)
-		_ = client.wsServer.service.EndGame(gameId)
-		game.broadcast <- &Message{
-			Action: GameEndedAction,
-			Target: game.ID,
-		}
-
-		return
-	}
-	if len(game.Round.UsersQuestions) == 0 {
-		game.broadcast <- &Message{
-			Action:  RoundEndAction,
-			Target:  game.ID,
-			Payload: game.Topics,
-		}
-		return
-	}
-
-	var respondent *UserQuestion
-	if len(game.Round.UsersQuestions) > 0 {
-		respondent = game.Round.UsersQuestions[0]
-	}
-	payload := respondent
-
-	game.broadcast <- &Message{
-		Action:  StartStageAction,
-		Target:  message.Target,
-		Payload: payload,
-		Sender:  message.Sender,
-		Time:    time.Now(),
-	}
-
+	game.startStage(client)
 }
+
 func (client *Client) handleRateMessage(message Message) {
 	gameId := message.Target
 	game := client.wsServer.findGame(gameId)

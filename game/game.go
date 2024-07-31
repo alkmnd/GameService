@@ -366,3 +366,52 @@ func (game *Game) startGame(client *Client) {
 		client.notifyClient(NewMessage(StartGameAction, &payload, game.ID, client.User, time.Now()))
 	}
 }
+
+func (game *Game) startStage(client *Client) {
+	if len(goterators.Filter(game.Topics, func(item Topic) bool {
+		return item.Used == false
+	})) == 0 && len(game.Round.UsersQuestions) == 0 {
+		game.endGame()
+		results := make(map[uuid.UUID]models.Rates)
+		for i, v := range game.Results {
+			tags := make([]uuid.UUID, len(v.Tags))
+			for k := range v.Tags {
+				tags[k] = v.Tags[k]
+			}
+			results[i] = models.Rates{
+				Value: v.Value,
+				Tags:  tags,
+			}
+		}
+		_ = client.wsServer.service.SaveResults(game.ID, results)
+		_ = client.wsServer.service.EndGame(game.ID)
+		game.broadcast <- &Message{
+			Action: GameEndedAction,
+			Target: game.ID,
+		}
+
+		return
+	}
+	if len(game.Round.UsersQuestions) == 0 {
+		game.broadcast <- &Message{
+			Action:  RoundEndAction,
+			Target:  game.ID,
+			Payload: game.Topics,
+		}
+		return
+	}
+
+	var respondent *UserQuestion
+	if len(game.Round.UsersQuestions) > 0 {
+		respondent = game.Round.UsersQuestions[0]
+	}
+	payload := respondent
+
+	game.broadcast <- &Message{
+		Action:  StartStageAction,
+		Target:  game.ID,
+		Payload: payload,
+		Sender:  client.User,
+		Time:    time.Now(),
+	}
+}
