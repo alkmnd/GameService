@@ -345,7 +345,7 @@ func (client *Client) handleStartStageMessage(message Message) {
 	gameId := message.Target
 	game := client.wsServer.findGame(gameId)
 
-	if game.getCreator() != client.User.Id {
+	if !game.isCreator(client) {
 		var messageError Message
 		messageError.Action = Error
 		messageError.Target = message.Target
@@ -522,7 +522,7 @@ func (client *Client) handleUserStartAnswerMessage(message Message) {
 func (client *Client) handleStartRoundMessage(message Message) {
 	gameId := message.Target
 	game := client.wsServer.findGame(gameId)
-	if game.isCreator(client) {
+	if !game.isCreator(client) {
 		return
 	}
 
