@@ -429,31 +429,7 @@ func (client *Client) handleUserEndAnswerMessage(message Message) {
 	gameId := message.Target
 	game := client.wsServer.findGame(gameId)
 
-	if game.Round == nil || game.Round.UsersQuestions == nil {
-		var messageError Message
-		messageError.Action = Error
-		messageError.Target = message.Target
-		messageError.Payload = 12
-		client.send <- messageError.encode()
-		return
-	}
-
-	stage, _, err := goterators.Find(game.Round.UsersQuestions, func(item *UserQuestion) bool {
-		return item.User.Id == client.User.Id
-	})
-
-	if err != nil {
-		return
-	}
-
-	for i := range game.Users {
-		if game.Users[i].Id != client.User.Id {
-			stage.Rates[game.Users[i].Id] = &Rates{
-				Value: 0,
-				Tags:  make([]uuid.UUID, 0),
-			}
-		}
-	}
+	game.initRates(client)
 	message.Time = time.Now()
 
 	game.broadcast <- &message

@@ -415,3 +415,31 @@ func (game *Game) startStage(client *Client) {
 		Time:    time.Now(),
 	}
 }
+
+func (game *Game) initRates(client *Client) {
+	if game.Round == nil || game.Round.UsersQuestions == nil {
+		client.notifyClient(NewMessage(Error, 12, game.ID, nil, time.Now()))
+		return
+	}
+
+	stage, _, err := goterators.Find(game.Round.UsersQuestions, func(item *UserQuestion) bool {
+		return item.User.Id == client.User.Id
+	})
+
+	if err != nil {
+		client.notifyClient(NewMessage(Error, ErrorMessage{
+			Code:    12,
+			Message: fmt.Sprintf("error to find stage: %s", err.Error()),
+		}, game.ID, nil, time.Now()))
+		return
+	}
+
+	for i := range game.Users {
+		if game.Users[i].Id != client.User.Id {
+			stage.Rates[game.Users[i].Id] = &Rates{
+				Value: 0,
+				Tags:  make([]uuid.UUID, 0),
+			}
+		}
+	}
+}
