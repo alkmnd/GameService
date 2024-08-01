@@ -14,7 +14,7 @@ type Repository struct {
 
 type Game interface {
 	GetGame(id uuid.UUID) (models.Game, error)
-	SaveResults(id uuid.UUID, results map[uuid.UUID]models.Rates) error
+	SaveResults(id uuid.UUID, results []models.Rates) error
 	EndGame(id uuid.UUID) error
 	StartGame(id uuid.UUID) error
 }

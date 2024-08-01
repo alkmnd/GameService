@@ -181,16 +181,18 @@ func (game *Game) startRound(client *Client, topicId uuid.UUID) {
 		return item.Used == false
 	})) == 0 {
 		game.endGame()
-		results := make(map[uuid.UUID]models.Rates)
-		for i, v := range game.Results {
-			tags := make([]uuid.UUID, len(v.Tags))
-			for k := range v.Tags {
-				tags[k] = v.Tags[k]
+		results := make([]models.Rates, 0)
+		for i, _ := range game.Clients {
+			userId := uuid.Nil
+			if i.Authorized {
+				userId = i.User.Id
 			}
-			results[i] = models.Rates{
-				Value: v.Value,
-				Tags:  tags,
-			}
+			results = append(results, models.Rates{
+				Value:  game.Results[i.User.Id].Value,
+				Tags:   nil,
+				UserId: userId,
+				Name:   i.User.Name,
+			})
 		}
 		_ = client.wsServer.service.SaveResults(game.ID, results)
 		_ = client.wsServer.service.EndGame(game.ID)
@@ -372,16 +374,18 @@ func (game *Game) startStage(client *Client) {
 		return item.Used == false
 	})) == 0 && len(game.Round.UsersQuestions) == 0 {
 		game.endGame()
-		results := make(map[uuid.UUID]models.Rates)
-		for i, v := range game.Results {
-			tags := make([]uuid.UUID, len(v.Tags))
-			for k := range v.Tags {
-				tags[k] = v.Tags[k]
+		results := make([]models.Rates, 0)
+		for i, _ := range game.Clients {
+			userId := uuid.Nil
+			if i.Authorized {
+				userId = i.User.Id
 			}
-			results[i] = models.Rates{
-				Value: v.Value,
-				Tags:  tags,
-			}
+			results = append(results, models.Rates{
+				Value:  game.Results[i.User.Id].Value,
+				Tags:   nil,
+				UserId: userId,
+				Name:   i.User.Name,
+			})
 		}
 		_ = client.wsServer.service.SaveResults(game.ID, results)
 		_ = client.wsServer.service.EndGame(game.ID)
