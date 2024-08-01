@@ -33,8 +33,8 @@ type UserQuestion struct {
 	Rates    map[uuid.UUID]*Rates `json:"-"`
 }
 type Rates struct {
-	Value int         `json:"value"`
-	Tags  []uuid.UUID `json:"tags"`
+	Value int                `json:"value"`
+	Tags  map[uuid.UUID]bool `json:"tags"`
 }
 
 type Round struct {
@@ -380,12 +380,17 @@ func (game *Game) startStage(client *Client) {
 			if i.Authorized {
 				userId = i.User.Id
 			}
+			var tags []uuid.UUID
+			for j := range game.Results[i.User.Id].Tags {
+				tags = append(tags, j)
+			}
 			results = append(results, models.Rates{
 				Value:  game.Results[i.User.Id].Value,
-				Tags:   nil,
+				Tags:   tags,
 				UserId: userId,
 				Name:   i.User.Name,
 			})
+
 		}
 		_ = client.wsServer.service.SaveResults(game.ID, results)
 		_ = client.wsServer.service.EndGame(game.ID)
@@ -443,7 +448,7 @@ func (game *Game) initRates(client *Client) {
 		if game.Users[i].Id != client.User.Id {
 			stage.Rates[game.Users[i].Id] = &Rates{
 				Value: 0,
-				Tags:  make([]uuid.UUID, 0),
+				Tags:  make(map[uuid.UUID]bool),
 			}
 		}
 	}
@@ -456,17 +461,19 @@ func (game *Game) updateResults(client *Client, user uuid.UUID, value int, tags 
 
 	usersQuestions.Rates[client.User.Id].Value = value
 	for i := range tags {
-		usersQuestions.Rates[client.User.Id].Tags = append(usersQuestions.Rates[client.User.Id].Tags, tags[i])
+		usersQuestions.Rates[client.User.Id].Tags[tags[i]] = true
 	}
 	_, ok := game.Results[user]
 	if !ok {
 		game.Results[user] = &Rates{
 			Value: 0,
-			Tags:  make([]uuid.UUID, 0),
+			Tags:  make(map[uuid.UUID]bool),
 		}
 		game.Results[user].Value = value
 	} else {
 		game.Results[user].Value += value
 	}
-	game.Results[user].Tags = append(game.Results[user].Tags, tags...)
+	for i := range tags {
+		game.Results[user].Tags[tags[i]] = true
+	}
 }

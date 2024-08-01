@@ -16,7 +16,7 @@ func NewGameRepo(apiKey string) Game {
 	return &GameRepo{apiKey: apiKey}
 }
 
-func (s *GameRepo) SaveResults(id uuid.UUID, results map[uuid.UUID]models.Rates) error {
+func (s *GameRepo) SaveResults(id uuid.UUID, results []models.Rates) error {
 	client := resty.New()
 	var _, err = client.R().
 		SetHeader("X-API-Key", s.apiKey).
