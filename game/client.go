@@ -236,7 +236,7 @@ func (client *Client) handleNewMessage(jsonMessage []byte) {
 	case StartGameAction:
 		client.handleStartGameMessage(message)
 	case LeaveGameAction:
-		client.handleLeaveGameMessage(message)
+		client.handleLeaveGameMessage(message) // TODO
 	case SelectTopicAction:
 		client.handleSelectTopicGameMessage(message)
 	case StartRoundAction:
@@ -250,9 +250,9 @@ func (client *Client) handleNewMessage(jsonMessage []byte) {
 	case StartStageAction:
 		client.handleStartStageMessage(message)
 	case EndGameAction:
-		client.handleEndGameMessage(message)
+		client.handleEndGameMessage(message) // TODO
 	case DeleteUserAction:
-		client.handleDeleteUserAction(message)
+		client.handleDeleteUserAction(message) // TODO
 	}
 
 }
@@ -370,56 +370,34 @@ func (client *Client) handleRateMessage(message Message) {
 	}
 	err = json.Unmarshal(jsonPayload, &rate)
 	if err != nil {
-		var messageError Message
-		messageError.Action = Error
-		messageError.Target = message.Target
-		messageError.Payload = 11
-		client.send <- messageError.encode()
+		client.notifyClient(NewMessage(Error, ErrorMessage{
+			Code:    11,
+			Message: fmt.Sprintf("cannot ummarshal payload: %s", err.Error())}, game.ID, nil, time.Now()))
 		return
 	}
+	if client.User.Id == rate.UserId {
+		client.notifyClient(NewMessage(Error, ErrorMessage{
+			Code:    11,
+			Message: "player cannot rate themselves"}, game.ID, nil, time.Now()))
+		return
+	}
+
+	game.updateResults(client, rate.UserId, rate.Value, rate.Tags)
+
+	game.broadcast <- &message
 
 	usersQuestions := goterators.Filter(game.Round.UsersQuestions, func(item *UserQuestion) bool {
 		return item.User.Id == rate.UserId
 	})[0]
 
-	if client.User.Id == rate.UserId {
-		var messageError Message
-		messageError.Action = Error
-		messageError.Target = message.Target
-		messageError.Payload = 11
-		client.send <- messageError.encode()
-		return
-	}
-
-	message.Target = game.ID
-
-	usersQuestions.Rates[client.User.Id].Value = rate.Value
-	for i := range rate.Tags {
-		usersQuestions.Rates[client.User.Id].Tags = append(usersQuestions.Rates[client.User.Id].Tags, rate.Tags[i])
-	}
-	_, ok := game.Results[rate.UserId]
-	if !ok {
-		game.Results[rate.UserId] = &Rates{
-			Value: 0,
-			Tags:  make([]uuid.UUID, 0),
-		}
-		game.Results[rate.UserId].Value = rate.Value
-	} else {
-		game.Results[rate.UserId].Value += rate.Value
-	}
-	game.Results[rate.UserId].Tags = append(game.Results[rate.UserId].Tags, rate.Tags...)
-
-	game.broadcast <- &message
-
 	if len(usersQuestions.Rates) == len(game.Users)-1 {
 		game.Round.UsersQuestions = goterators.Filter(game.Round.UsersQuestions, func(item *UserQuestion) bool {
 			return item.User != usersQuestions.User
 		})
-		game.broadcast <- &Message{
-			Action: RateEndAction,
-			Target: message.Target,
-			Time:   time.Now(),
-		}
+		game.broadcast <- NewMessage(
+			RateEndAction, nil,
+			game.ID,
+			nil, time.Now())
 		return
 	}
 

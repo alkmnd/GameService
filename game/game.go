@@ -398,6 +398,7 @@ func (game *Game) startStage(client *Client) {
 			Target:  game.ID,
 			Payload: game.Topics,
 		}
+		game.Round = nil
 		return
 	}
 
@@ -442,4 +443,26 @@ func (game *Game) initRates(client *Client) {
 			}
 		}
 	}
+}
+
+func (game *Game) updateResults(client *Client, user uuid.UUID, value int, tags []uuid.UUID) {
+	usersQuestions := goterators.Filter(game.Round.UsersQuestions, func(item *UserQuestion) bool {
+		return item.User.Id == user
+	})[0]
+
+	usersQuestions.Rates[client.User.Id].Value = value
+	for i := range tags {
+		usersQuestions.Rates[client.User.Id].Tags = append(usersQuestions.Rates[client.User.Id].Tags, tags[i])
+	}
+	_, ok := game.Results[user]
+	if !ok {
+		game.Results[user] = &Rates{
+			Value: 0,
+			Tags:  make([]uuid.UUID, 0),
+		}
+		game.Results[user].Value = value
+	} else {
+		game.Results[user].Value += value
+	}
+	game.Results[user].Tags = append(game.Results[user].Tags, tags...)
 }
