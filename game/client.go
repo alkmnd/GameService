@@ -1,7 +1,6 @@
 package game
 
 import (
-	"GameService/consts/game_status"
 	"GameService/consts/plan_types"
 	"GameService/repository/models"
 	"encoding/json"
@@ -251,9 +250,9 @@ func (client *Client) handleNewMessage(jsonMessage []byte) {
 	case StartStageAction:
 		client.handleStartStageMessage(message)
 	case EndGameAction:
-		client.handleEndGameMessage(message) // TODO
+		client.handleEndGameMessage(message)
 	case DeleteUserAction:
-		client.handleDeleteUserAction(message) // TODO
+		client.handleDeleteUserAction(message)
 	}
 
 }
@@ -292,38 +291,13 @@ func (client *Client) handleEndGameMessage(message Message) {
 		return
 	}
 
-	if game.getCreator() != client.User.Id {
-		var messageError Message
-		messageError.Action = Error
-		messageError.Target = message.Target
-		messageError.Payload = ErrorMessage{
-			Code:    8,
-			Message: "permission denied",
-		}
-		client.send <- messageError.encode()
+	if game.isCreator(client) {
 		return
 	}
-
 	game.endGame()
 	_ = client.wsServer.service.EndGame(game.ID)
-	results := make(map[uuid.UUID]models.Rates)
-	for i, v := range game.Results {
-		tags := make([]uuid.UUID, len(v.Tags))
-		for k := range v.Tags {
-			tags[k] = v.Tags[k]
-		}
-		results[i] = models.Rates{
-			Value: v.Value,
-			Tags:  tags,
-		}
-	}
 
-	game.broadcast <- &Message{
-		Action: GameEndedAction,
-		Target: game.ID,
-		Time:   time.Now(),
-	}
-
+	game.broadcast <- NewMessage(GameEndedAction, nil, game.ID, nil, time.Now())
 	return
 
 }
@@ -565,7 +539,7 @@ func (client *Client) handleLeaveGameMessage(message Message) {
 	game := client.wsServer.findGame(message.Target)
 	if client.User.Id == game.Creator {
 		_ = client.wsServer.service.EndGame(game.ID)
-		game.Status = game_status.GameEnded
+		game.endGame()
 		game.unregister <- client
 		game.broadcast <- NewMessage(UserLeftAction, nil, game.ID, nil, time.Now())
 		game.broadcast <- NewMessage(GameEndedAction, nil, game.ID, nil, time.Now())
