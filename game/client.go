@@ -237,7 +237,7 @@ func (client *Client) handleNewMessage(jsonMessage []byte) {
 	case StartGameAction:
 		client.handleStartGameMessage(message)
 	case LeaveGameAction:
-		client.handleLeaveGameMessage(message) // TODO
+		client.handleLeaveGameMessage(message)
 	case SelectTopicAction:
 		client.handleSelectTopicGameMessage(message)
 	case StartRoundAction:
@@ -260,15 +260,7 @@ func (client *Client) handleNewMessage(jsonMessage []byte) {
 
 func (client *Client) handleDeleteUserAction(message Message) {
 	game := client.wsServer.findGame(message.Target)
-	if game.getCreator() != client.User.Id {
-		var messageError Message
-		messageError.Action = Error
-		messageError.Target = message.Target
-		messageError.Payload = ErrorMessage{
-			Code:    8,
-			Message: "permission denied",
-		}
-		client.send <- messageError.encode()
+	if game.isCreator(client) {
 		return
 	}
 	var userId uuid.UUID
@@ -283,12 +275,7 @@ func (client *Client) handleDeleteUserAction(message Message) {
 			break
 		}
 	}
-	var messageSend Message
-	messageSend.Action = UserDeletedAction
-	messageSend.Sender = client.User
-	messageSend.Target = game.ID
-	messageSend.Payload = game.Users
-	game.broadcast <- &messageSend
+	game.broadcast <- NewMessage(UserDeletedAction, game.Users, game.ID, client.User, time.Now())
 }
 
 type ratePayload struct {
