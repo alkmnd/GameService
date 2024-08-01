@@ -49,7 +49,6 @@ func (s *GameRepo) StartGame(id uuid.UUID) error {
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
