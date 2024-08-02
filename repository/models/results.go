@@ -8,3 +8,10 @@ type Rates struct {
 	UserId uuid.UUID   `json:"user_id"`
 	Name   string      `json:"name"`
 }
+
+type GetResultsResponse struct {
+	Value  int       `json:"value"`
+	Tags   []Tag     `json:"tags"`
+	UserId uuid.UUID `json:"user_id"`
+	Name   string    `json:"name"`
+}

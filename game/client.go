@@ -298,7 +298,7 @@ func (client *Client) handleEndGameMessage(message Message) {
 	game.endGame()
 	_ = client.wsServer.service.EndGame(game.ID)
 
-	game.broadcast <- NewMessage(GameEndedAction, nil, game.ID, nil, time.Now())
+	game.broadcast <- NewMessage(GameAbortedAction, nil, game.ID, nil, time.Now())
 	return
 
 }

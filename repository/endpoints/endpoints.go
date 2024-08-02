@@ -14,4 +14,5 @@ const (
 	GetRandTopicsURL     = BaseURL + "/api/topics/list/{limit}"
 	CreateMeetingURL     = ZoomApiBaseURL + "/users/{user_id}/meetings"
 	RefreshTokenURL      = "https://zoom.us/oauth/token"
+	GetResultsURL        = BaseURL + "/api/games/results/{id}"
 )

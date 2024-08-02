@@ -187,18 +187,23 @@ func (game *Game) startRound(client *Client, topicId uuid.UUID) {
 			if i.Authorized {
 				userId = i.User.Id
 			}
+			var tags []uuid.UUID
+			for j := range game.Results[i.User.Id].Tags {
+				tags = append(tags, j)
+			}
 			results = append(results, models.Rates{
 				Value:  game.Results[i.User.Id].Value,
-				Tags:   nil,
+				Tags:   tags,
 				UserId: userId,
 				Name:   i.User.Name,
 			})
 		}
 		_ = client.wsServer.service.SaveResults(game.ID, results)
 		_ = client.wsServer.service.EndGame(game.ID)
+		payload, _ := client.wsServer.service.GetResults(game.ID)
 		game.broadcast <- &Message{
 			Action:  GameEndedAction,
-			Payload: results,
+			Payload: payload,
 			Target:  game.ID,
 		}
 		return
