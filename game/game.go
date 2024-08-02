@@ -475,7 +475,9 @@ func (game *Game) updateResults(client *Client, user uuid.UUID, value int, tags 
 	} else {
 		game.Results[user].Value += value
 	}
-	for i := range tags {
-		game.Results[user].Tags[tags[i]] = true
+	if tags != nil {
+		for i := range tags {
+			game.Results[user].Tags[tags[i]] = true
+		}
 	}
 }

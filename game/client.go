@@ -111,7 +111,7 @@ func ServeWs(wsServer *WsServer, w http.ResponseWriter, r *http.Request) {
 
 		user, err := wsServer.service.GetUserById(id)
 		userId = user.Id
-		userName = user.FirstName + user.SecondName
+		userName = user.FirstName + " " + user.SecondName
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			logrus.Println(err)
