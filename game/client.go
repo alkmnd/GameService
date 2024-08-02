@@ -1,6 +1,7 @@
 package game
 
 import (
+	"GameService/consts/game_status"
 	"GameService/consts/plan_types"
 	"GameService/repository/models"
 	"encoding/json"
@@ -423,6 +424,12 @@ func (client *Client) handleStartGameMessage(message Message) {
 	gameId := message.Target
 
 	game := client.wsServer.findGame(gameId)
+	if len(game.Users) < 2 {
+		client.notifyClient(NewMessage(Error, ErrorMessage{
+			Code:    4,
+			Message: "not enough players to start the game"}, game.ID, nil, time.Now()))
+		return
+	}
 	game.startGame(client)
 }
 
@@ -537,19 +544,21 @@ func (client *Client) notifyClientJoined(game *Game) {
 
 func (client *Client) handleLeaveGameMessage(message Message) {
 	game := client.wsServer.findGame(message.Target)
-	if client.User.Id == game.Creator {
+	if client.User.Id == game.Creator && game.Status == game_status.GameInProgress {
 		_ = client.wsServer.service.EndGame(game.ID)
 		game.endGame()
 		game.unregister <- client
 		game.broadcast <- NewMessage(UserLeftAction, nil, game.ID, nil, time.Now())
-		game.broadcast <- NewMessage(GameEndedAction, nil, game.ID, nil, time.Now())
+		game.broadcast <- NewMessage(GameAbortedAction, nil, game.ID, nil, time.Now())
 		return
 
 	}
 
 	game.unregister <- client
 	game.broadcast <- NewMessage(UserLeftAction, nil, game.ID, nil, time.Now())
-	if len(game.Users) < 2 {
-		game.broadcast <- NewMessage(GameEndedAction, nil, game.ID, nil, time.Now())
+	if len(game.Users) < 2 && game.Status == game_status.GameInProgress {
+		_ = client.wsServer.service.EndGame(game.ID)
+		game.endGame()
+		game.broadcast <- NewMessage(GameAbortedAction, nil, game.ID, nil, time.Now())
 	}
 }

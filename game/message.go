@@ -26,6 +26,7 @@ const StartStageAction = "start-stage"
 const DeleteUserAction = "delete-user"
 const UserDeletedAction = "user-deleted"
 const UserLeftAction = "user-left"
+const GameAbortedAction = "game-abort"
 
 type Message struct {
 	Action  string      `json:"action"`
