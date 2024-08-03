@@ -400,9 +400,10 @@ func (game *Game) startStage(client *Client) {
 		}
 		_ = client.wsServer.service.SaveResults(game.ID, results)
 		_ = client.wsServer.service.EndGame(game.ID)
+		payload, _ := client.wsServer.service.GetResults(game.ID)
 		game.broadcast <- &Message{
 			Action:  GameEndedAction,
-			Payload: results,
+			Payload: payload,
 			Target:  game.ID,
 		}
 
