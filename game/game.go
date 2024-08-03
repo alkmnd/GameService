@@ -376,6 +376,9 @@ func (game *Game) startGame(client *Client) {
 }
 
 func (game *Game) startStage(client *Client) {
+	if game.Round != nil {
+		return
+	}
 	if len(goterators.Filter(game.Topics, func(item Topic) bool {
 		return item.Used == false
 	})) == 0 && len(game.Round.UsersQuestions) == 0 {
