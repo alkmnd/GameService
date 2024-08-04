@@ -20,12 +20,13 @@ const UserStartAnswerAction = "start-answer"
 const UserEndAnswerAction = "end-answer"
 const RateAction = "rate-user"
 const RateEndAction = "rate-end"
-const EndedAction = "game-end"
+const GameEndedAction = "game-end"
 const EndGameAction = "end-game"
 const StartStageAction = "start-stage"
 const DeleteUserAction = "delete-user"
 const UserDeletedAction = "user-deleted"
 const UserLeftAction = "user-left"
+const GameAbortedAction = "game-abort"
 
 type Message struct {
 	Action  string      `json:"action"`
@@ -33,6 +34,21 @@ type Message struct {
 	Target  uuid.UUID   `json:"target"`
 	Sender  *User       `json:"sender,omitempty"`
 	Time    time.Time   `json:"time,omitempty"`
+}
+
+func NewMessage(action string,
+	payload interface{},
+	target uuid.UUID,
+	sender *User,
+	time time.Time) *Message {
+	return &Message{
+		Action:  action,
+		Payload: payload,
+		Target:  target,
+		Sender:  sender,
+		Time:    time,
+	}
+
 }
 
 func (message *Message) encode() []byte {

@@ -9,13 +9,15 @@ type Repository struct {
 	Game
 	User
 	Topic
+	Meeting
 }
 
 type Game interface {
 	GetGame(id uuid.UUID) (models.Game, error)
-	SaveResults(id uuid.UUID, results map[uuid.UUID]models.Rates) error
+	SaveResults(id uuid.UUID, results []models.Rates) error
 	EndGame(id uuid.UUID) error
 	StartGame(id uuid.UUID) error
+	GetResults(gameId uuid.UUID) (results models.GetResultsResponse, err error)
 }
 type Topic interface {
 	GetTopic(id uuid.UUID) (models.Topic, error)
@@ -29,10 +31,19 @@ type User interface {
 	GetCreatorPlan(id uuid.UUID) (plan models.UserPlan, err error)
 }
 
-func NewHTTPService(apiKey string) *Repository {
+type Meeting interface {
+	CreateMeeting() (meetingNumber string, passcode string, err error)
+}
+
+func NewHTTPService(apiKey string,
+	accessToken string,
+	refreshToken string,
+	clientId string,
+	clientSecret string) *Repository {
 	return &Repository{
-		Game:  NewGameRepo(apiKey),
-		User:  NewUserService(apiKey),
-		Topic: NewTopicRepo(apiKey),
+		Game:    NewGameRepo(apiKey),
+		User:    NewUserService(apiKey),
+		Topic:   NewTopicRepo(apiKey),
+		Meeting: NewMeetingRepo(accessToken, refreshToken, clientId, clientSecret),
 	}
 }

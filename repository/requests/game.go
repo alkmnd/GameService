@@ -4,7 +4,6 @@ import (
 	"GameService/repository/endpoints"
 	"GameService/repository/models"
 	"encoding/json"
-	"fmt"
 	"github.com/go-resty/resty/v2"
 	"github.com/google/uuid"
 )
@@ -17,7 +16,7 @@ func NewGameRepo(apiKey string) Game {
 	return &GameRepo{apiKey: apiKey}
 }
 
-func (s *GameRepo) SaveResults(id uuid.UUID, results map[uuid.UUID]models.Rates) error {
+func (s *GameRepo) SaveResults(id uuid.UUID, results []models.Rates) error {
 	client := resty.New()
 	var _, err = client.R().
 		SetHeader("X-API-Key", s.apiKey).
@@ -50,27 +49,28 @@ func (s *GameRepo) StartGame(id uuid.UUID) error {
 	if err != nil {
 		return err
 	}
-
 	return nil
+}
+
+func (s *GameRepo) GetResults(gameId uuid.UUID) (results models.GetResultsResponse, err error) {
+	client := resty.New()
+	resp, err := client.R().
+		SetHeader("X-API-Key", s.apiKey).SetPathParam("id", gameId.String()).Get(endpoints.GetResultsURL)
+	if err != nil {
+		return results, err
+	}
+	err = json.Unmarshal(resp.Body(), &results)
+	if err != nil {
+		return results, err
+	}
+
+	return results, err
 }
 
 func (s *GameRepo) GetGame(id uuid.UUID) (game models.Game, err error) {
 	client := resty.New()
 	resp, err := client.R().
 		SetHeader("X-API-Key", s.apiKey).SetPathParam("id", id.String()).Get(endpoints.GetGameURL)
-
-	// Вывод тела ответа в виде строки
-	if err != nil {
-		fmt.Printf("Error during request: %v\n", err)
-	}
-	fmt.Printf("API Response Body: %s\n", string(resp.Body()))
-
-	// Вывод статуса ответа
-	fmt.Printf("API Response Status: %s\n", resp.Status())
-
-	// Вывод заголовков ответа
-	fmt.Printf("API Response Headers: %v\n", resp.Header())
-
 	if err != nil {
 		return game, err
 	}
