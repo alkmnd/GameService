@@ -177,6 +177,9 @@ func (game *Game) getCreator() uuid.UUID {
 }
 
 func (game *Game) startRound(client *Client, topicId uuid.UUID) {
+	if game.Status == game_status.GameEnded {
+		return
+	}
 	if len(goterators.Filter(game.Topics, func(item Topic) bool {
 		return item.Used == false
 	})) == 0 {
@@ -376,7 +379,7 @@ func (game *Game) startGame(client *Client) {
 }
 
 func (game *Game) startStage(client *Client) {
-	if game.Round != nil {
+	if game.Status == game_status.GameEnded || game.Round == nil {
 		return
 	}
 	if len(goterators.Filter(game.Topics, func(item Topic) bool {
