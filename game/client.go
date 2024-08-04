@@ -260,6 +260,19 @@ func (client *Client) handleNewMessage(jsonMessage []byte) {
 
 func (client *Client) handleDeleteUserAction(message Message) {
 	game := client.wsServer.findGame(message.Target)
+	if game == nil {
+		message := &Message{
+			Action: Error,
+			Target: message.Target,
+			Payload: ErrorMessage{
+				Code:    2,
+				Message: fmt.Sprintf("game %s is not found", game.ID),
+			},
+			Time: time.Now(),
+		}
+		client.notifyClient(message)
+		return
+	}
 	if game.isCreator(client) {
 		return
 	}
@@ -289,6 +302,16 @@ func (client *Client) handleEndGameMessage(message Message) {
 	game := client.wsServer.findGame(gameId)
 
 	if game == nil {
+		message := &Message{
+			Action: Error,
+			Target: message.Target,
+			Payload: ErrorMessage{
+				Code:    2,
+				Message: fmt.Sprintf("game %s is not found", game.ID),
+			},
+			Time: time.Now(),
+		}
+		client.notifyClient(message)
 		return
 	}
 
@@ -307,7 +330,19 @@ func (client *Client) handleStartStageMessage(message Message) {
 
 	gameId := message.Target
 	game := client.wsServer.findGame(gameId)
-
+	if game == nil {
+		message := &Message{
+			Action: Error,
+			Target: message.Target,
+			Payload: ErrorMessage{
+				Code:    2,
+				Message: fmt.Sprintf("game %s is not found", game.ID),
+			},
+			Time: time.Now(),
+		}
+		client.notifyClient(message)
+		return
+	}
 	if !game.isCreator(client) {
 		return
 	}
@@ -370,6 +405,19 @@ func (client *Client) handleUserEndAnswerMessage(message Message) {
 	gameId := message.Target
 	game := client.wsServer.findGame(gameId)
 
+	if game == nil {
+		message := &Message{
+			Action: Error,
+			Target: message.Target,
+			Payload: ErrorMessage{
+				Code:    2,
+				Message: fmt.Sprintf("game %s is not found", game.ID),
+			},
+			Time: time.Now(),
+		}
+		client.notifyClient(message)
+		return
+	}
 	game.initRates(client)
 	message.Time = time.Now()
 
@@ -379,6 +427,19 @@ func (client *Client) handleUserEndAnswerMessage(message Message) {
 func (client *Client) handleUserStartAnswerMessage(message Message) {
 	gameId := message.Target
 	game := client.wsServer.findGame(gameId)
+	if game == nil {
+		message := &Message{
+			Action: Error,
+			Target: message.Target,
+			Payload: ErrorMessage{
+				Code:    2,
+				Message: fmt.Sprintf("game %s is not found", game.ID),
+			},
+			Time: time.Now(),
+		}
+		client.notifyClient(message)
+		return
+	}
 	message.Time = time.Now()
 	game.broadcast <- &message
 }
@@ -386,6 +447,19 @@ func (client *Client) handleUserStartAnswerMessage(message Message) {
 func (client *Client) handleStartRoundMessage(message Message) {
 	gameId := message.Target
 	game := client.wsServer.findGame(gameId)
+	if game == nil {
+		message := &Message{
+			Action: Error,
+			Target: message.Target,
+			Payload: ErrorMessage{
+				Code:    2,
+				Message: fmt.Sprintf("game %s is not found", game.ID),
+			},
+			Time: time.Now(),
+		}
+		client.notifyClient(message)
+		return
+	}
 	if !game.isCreator(client) {
 		return
 	}
@@ -424,6 +498,19 @@ func (client *Client) handleStartGameMessage(message Message) {
 	gameId := message.Target
 
 	game := client.wsServer.findGame(gameId)
+	if game == nil {
+		message := &Message{
+			Action: Error,
+			Target: message.Target,
+			Payload: ErrorMessage{
+				Code:    2,
+				Message: fmt.Sprintf("game %s is not found", game.ID),
+			},
+			Time: time.Now(),
+		}
+		client.notifyClient(message)
+		return
+	}
 	if len(game.Users) < 2 {
 		client.notifyClient(NewMessage(Error, ErrorMessage{
 			Code:    4,
@@ -436,6 +523,20 @@ func (client *Client) handleStartGameMessage(message Message) {
 func (client *Client) handleSelectTopicGameMessage(message Message) {
 	gameId := message.Target
 	game := client.wsServer.findGame(gameId)
+
+	if game == nil {
+		message := &Message{
+			Action: Error,
+			Target: message.Target,
+			Payload: ErrorMessage{
+				Code:    2,
+				Message: fmt.Sprintf("game %s is not found", game.ID),
+			},
+			Time: time.Now(),
+		}
+		client.notifyClient(message)
+		return
+	}
 
 	if !game.isCreator(client) {
 		return
@@ -544,6 +645,19 @@ func (client *Client) notifyClientJoined(game *Game) {
 
 func (client *Client) handleLeaveGameMessage(message Message) {
 	game := client.wsServer.findGame(message.Target)
+	if game == nil {
+		message := &Message{
+			Action: Error,
+			Target: message.Target,
+			Payload: ErrorMessage{
+				Code:    2,
+				Message: fmt.Sprintf("game %s is not found", game.ID),
+			},
+			Time: time.Now(),
+		}
+		client.notifyClient(message)
+		return
+	}
 	if client.User.Id == game.Creator && game.Status == game_status.GameInProgress {
 		_ = client.wsServer.service.EndGame(game.ID)
 		game.endGame()
