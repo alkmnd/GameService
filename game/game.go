@@ -379,7 +379,7 @@ func (game *Game) startGame(client *Client) {
 }
 
 func (game *Game) startStage(client *Client) {
-	if game.Status == game_status.GameEnded || game.Round == nil {
+	if game.Status == game_status.GameEnded {
 		return
 	}
 	if len(goterators.Filter(game.Topics, func(item Topic) bool {
@@ -421,7 +421,6 @@ func (game *Game) startStage(client *Client) {
 			Target:  game.ID,
 			Payload: game.Topics,
 		}
-		game.Round = nil
 		return
 	}
 
