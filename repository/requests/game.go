@@ -16,7 +16,7 @@ func NewGameRepo(apiKey string) Game {
 	return &GameRepo{apiKey: apiKey}
 }
 
-func (s GameRepo) GetResults(gameId uuid.UUID) (results models.GetResultsResponse, err error) {
+func (s *GameRepo) GetResults(gameId uuid.UUID) (results models.GetResultsResponse, err error) {
 	client := resty.New()
 	resp, err := client.R().
 		SetHeader("X-API-Key", s.apiKey).SetPathParam("id", gameId.String()).Get(endpoints.GetResultsURL)
