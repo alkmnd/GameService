@@ -11,9 +11,5 @@ type Rates struct {
 }
 
 type GetResultsResponse struct {
-	Value           int       `json:"value"`
-	Tags            []Tag     `json:"tags"`
-	UserId          uuid.UUID `json:"user_id"`
-	UserTemporaryId uuid.UUID `json:"user_temp_id"`
-	Name            string    `json:"name"`
+	Results []Rates `json:"results"`
 }
