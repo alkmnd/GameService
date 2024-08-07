@@ -186,6 +186,7 @@ func (game *Game) startRound(client *Client, topicId uuid.UUID) {
 		game.endGame()
 		results := make([]models.Rates, 0)
 		for i, _ := range game.Clients {
+			userTempId := i.User.Id
 			userId := uuid.Nil
 			if i.Authorized {
 				userId = i.User.Id
@@ -198,7 +199,7 @@ func (game *Game) startRound(client *Client, topicId uuid.UUID) {
 				Value:           game.Results[i.User.Id].Value,
 				Tags:            tags,
 				UserId:          userId,
-				UserTemporaryId: userId,
+				UserTemporaryId: userTempId,
 				Name:            i.User.Name,
 			})
 		}
@@ -390,6 +391,7 @@ func (game *Game) startStage(client *Client) {
 		results := make([]models.Rates, 0)
 		for i, _ := range game.Clients {
 			userId := uuid.Nil
+			userTempId := i.User.Id
 			if i.Authorized {
 				userId = i.User.Id
 			}
@@ -401,7 +403,7 @@ func (game *Game) startStage(client *Client) {
 				Value:           game.Results[i.User.Id].Value,
 				Tags:            tags,
 				UserId:          userId,
-				UserTemporaryId: userId,
+				UserTemporaryId: userTempId,
 				Name:            i.User.Name,
 			})
 

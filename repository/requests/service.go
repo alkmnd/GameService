@@ -17,7 +17,7 @@ type Game interface {
 	SaveResults(id uuid.UUID, results []models.Rates) error
 	EndGame(id uuid.UUID) error
 	StartGame(id uuid.UUID) error
-	GetResults(gameId uuid.UUID) (results []models.Rates, err error)
+	GetResults(gameId uuid.UUID) (results models.GetResultsResponse, err error)
 }
 type Topic interface {
 	GetTopic(id uuid.UUID) (models.Topic, error)

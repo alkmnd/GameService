@@ -22,6 +22,7 @@ func main() {
 	}
 
 	logrus.Println("Starting...")
+
 	zoomSDKKey := os.Getenv("ZOOM_SDK_KEY")
 	zoomSDKSecret := os.Getenv("ZOOM_SDK_SECRET")
 	httpService := requests.NewHTTPService(os.Getenv("HTTP_SERVICE_API_KEY"),
