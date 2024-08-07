@@ -266,7 +266,7 @@ func (client *Client) handleDeleteUserAction(message Message) {
 			Target: message.Target,
 			Payload: ErrorMessage{
 				Code:    2,
-				Message: fmt.Sprintf("game %s is not found", game.ID),
+				Message: fmt.Sprintf("game %s is not found", message.Target),
 			},
 			Time: time.Now(),
 		}
@@ -307,7 +307,7 @@ func (client *Client) handleEndGameMessage(message Message) {
 			Target: message.Target,
 			Payload: ErrorMessage{
 				Code:    2,
-				Message: fmt.Sprintf("game %s is not found", game.ID),
+				Message: fmt.Sprintf("game %s is not found", message.Target),
 			},
 			Time: time.Now(),
 		}
@@ -336,7 +336,7 @@ func (client *Client) handleStartStageMessage(message Message) {
 			Target: message.Target,
 			Payload: ErrorMessage{
 				Code:    2,
-				Message: fmt.Sprintf("game %s is not found", game.ID),
+				Message: fmt.Sprintf("game %s is not found", message.Target),
 			},
 			Time: time.Now(),
 		}
@@ -411,7 +411,7 @@ func (client *Client) handleUserEndAnswerMessage(message Message) {
 			Target: message.Target,
 			Payload: ErrorMessage{
 				Code:    2,
-				Message: fmt.Sprintf("game %s is not found", game.ID),
+				Message: fmt.Sprintf("game %s is not found", message.Target),
 			},
 			Time: time.Now(),
 		}
@@ -433,7 +433,7 @@ func (client *Client) handleUserStartAnswerMessage(message Message) {
 			Target: message.Target,
 			Payload: ErrorMessage{
 				Code:    2,
-				Message: fmt.Sprintf("game %s is not found", game.ID),
+				Message: fmt.Sprintf("game %s is not found", message.Target),
 			},
 			Time: time.Now(),
 		}
@@ -453,7 +453,7 @@ func (client *Client) handleStartRoundMessage(message Message) {
 			Target: message.Target,
 			Payload: ErrorMessage{
 				Code:    2,
-				Message: fmt.Sprintf("game %s is not found", game.ID),
+				Message: fmt.Sprintf("game %s is not found", message.Target),
 			},
 			Time: time.Now(),
 		}
@@ -504,7 +504,7 @@ func (client *Client) handleStartGameMessage(message Message) {
 			Target: message.Target,
 			Payload: ErrorMessage{
 				Code:    2,
-				Message: fmt.Sprintf("game %s is not found", game.ID),
+				Message: fmt.Sprintf("game %s is not found", message.Target),
 			},
 			Time: time.Now(),
 		}
@@ -530,7 +530,7 @@ func (client *Client) handleSelectTopicGameMessage(message Message) {
 			Target: message.Target,
 			Payload: ErrorMessage{
 				Code:    2,
-				Message: fmt.Sprintf("game %s is not found", game.ID),
+				Message: fmt.Sprintf("game %s is not found", message.Target),
 			},
 			Time: time.Now(),
 		}
@@ -554,7 +554,7 @@ func (client *Client) handleSelectTopicGameMessage(message Message) {
 	switch userPlan.PlanType {
 	case plan_types.Basic:
 		topics, err := client.wsServer.service.GetRandTopicsWithLimit(3)
-		if err != nil {
+		if err != nil || topics == nil {
 			client.notifyClient(NewMessage(Error, ErrorMessage{
 				Code:    7,
 				Message: fmt.Sprintf("cannot get topics: %s", err.Error()),
@@ -618,7 +618,7 @@ func (client *Client) handleJoinGameMessage(message Message) {
 			Target: message.Target,
 			Payload: ErrorMessage{
 				Code:    2,
-				Message: fmt.Sprintf("user %s cannot join the game %s", client.User.Id, game.ID),
+				Message: fmt.Sprintf("user %s cannot join the game %s", client.User.Id, message.Target),
 			},
 			Time: time.Now(),
 		}
@@ -651,7 +651,7 @@ func (client *Client) handleLeaveGameMessage(message Message) {
 			Target: message.Target,
 			Payload: ErrorMessage{
 				Code:    2,
-				Message: fmt.Sprintf("game %s is not found", game.ID),
+				Message: fmt.Sprintf("game %s is not found", message.Target),
 			},
 			Time: time.Now(),
 		}

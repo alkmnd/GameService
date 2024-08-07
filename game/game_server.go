@@ -50,7 +50,7 @@ func (server *WsServer) findGame(id uuid.UUID) *Game {
 
 	dbGame, err := server.service.GetGame(id)
 
-	if err != nil || dbGame.Status == "ended" {
+	if err != nil || dbGame.Status == "ended" || dbGame.Id == uuid.Nil {
 		return foundGame
 	}
 	var maxSize int
