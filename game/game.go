@@ -195,10 +195,11 @@ func (game *Game) startRound(client *Client, topicId uuid.UUID) {
 				tags = append(tags, j)
 			}
 			results = append(results, models.Rates{
-				Value:  game.Results[i.User.Id].Value,
-				Tags:   tags,
-				UserId: userId,
-				Name:   i.User.Name,
+				Value:           game.Results[i.User.Id].Value,
+				Tags:            tags,
+				UserId:          userId,
+				UserTemporaryId: userId,
+				Name:            i.User.Name,
 			})
 		}
 		_ = client.wsServer.service.SaveResults(game.ID, results)
@@ -397,10 +398,11 @@ func (game *Game) startStage(client *Client) {
 				tags = append(tags, j)
 			}
 			results = append(results, models.Rates{
-				Value:  game.Results[i.User.Id].Value,
-				Tags:   tags,
-				UserId: userId,
-				Name:   i.User.Name,
+				Value:           game.Results[i.User.Id].Value,
+				Tags:            tags,
+				UserId:          userId,
+				UserTemporaryId: userId,
+				Name:            i.User.Name,
 			})
 
 		}
