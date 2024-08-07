@@ -10,7 +10,7 @@ type Rates struct {
 	Name            string      `json:"name"`
 }
 
-type Result struct {
+type Results struct {
 	Value           int       `json:"value"`
 	Tags            []Tag     `json:"tags"`
 	UserId          uuid.UUID `json:"user_id"`
@@ -19,5 +19,5 @@ type Result struct {
 }
 
 type GetResultsResponse struct {
-	Results []Result `json:"results"`
+	Results []Results `json:"results"`
 }
