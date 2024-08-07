@@ -16,6 +16,21 @@ func NewGameRepo(apiKey string) Game {
 	return &GameRepo{apiKey: apiKey}
 }
 
+func (s GameRepo) GetResults(gameId uuid.UUID) (results []models.Rates, err error) {
+	client := resty.New()
+	resp, err := client.R().
+		SetHeader("X-API-Key", s.apiKey).SetPathParam("id", gameId.String()).Get(endpoints.GetResultsURL)
+	if err != nil {
+		return results, err
+	}
+	err = json.Unmarshal(resp.Body(), &results)
+	if err != nil {
+		return results, err
+	}
+
+	return results, err
+}
+
 func (s *GameRepo) SaveResults(id uuid.UUID, results []models.Rates) error {
 	client := resty.New()
 	var _, err = client.R().
@@ -50,21 +65,6 @@ func (s *GameRepo) StartGame(id uuid.UUID) error {
 		return err
 	}
 	return nil
-}
-
-func (s *GameRepo) GetResults(gameId uuid.UUID) (results models.GetResultsResponse, err error) {
-	client := resty.New()
-	resp, err := client.R().
-		SetHeader("X-API-Key", s.apiKey).SetPathParam("id", gameId.String()).Get(endpoints.GetResultsURL)
-	if err != nil {
-		return results, err
-	}
-	err = json.Unmarshal(resp.Body(), &results)
-	if err != nil {
-		return results, err
-	}
-
-	return results, err
 }
 
 func (s *GameRepo) GetGame(id uuid.UUID) (game models.Game, err error) {
