@@ -117,15 +117,6 @@ func (game *Game) registerClientInGame(client *Client) {
 		return
 	}
 
-	if game.Status == game_status.GameInProgress || game.Status == game_status.GameEnded {
-		message := NewMessage(Error, ErrorMessage{
-			Code:    2,
-			Message: "game in progress",
-		}, game.ID, client.User, time.Now())
-		client.notifyClient(message)
-		return
-	}
-
 	for i := range game.Users {
 		if game.Users[i].Id == client.User.Id {
 			message := NewMessage(UserJoinedAction, game, game.ID, client.User, time.Now())
@@ -133,6 +124,14 @@ func (game *Game) registerClientInGame(client *Client) {
 			game.Clients[client] = true
 			return
 		}
+	}
+	if game.Status == game_status.GameInProgress || game.Status == game_status.GameEnded {
+		message := NewMessage(Error, ErrorMessage{
+			Code:    2,
+			Message: "game in progress",
+		}, game.ID, client.User, time.Now())
+		client.notifyClient(message)
+		return
 	}
 
 	message := NewMessage(UserJoinedAction, game, game.ID, client.User, time.Now())
