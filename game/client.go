@@ -659,22 +659,22 @@ func (client *Client) handleLeaveGameMessage(message Message) {
 		client.notifyClient(message)
 		return
 	}
-	message.Payload = client.User.Id
+
 	if client.User.Id == game.Creator && game.Status == game_status.GameInProgress {
 		_ = client.wsServer.service.EndGame(game.ID)
 		game.endGame()
 		game.unregister <- client
-		game.broadcast <- NewMessage(UserLeftAction, nil, game.ID, nil, time.Now())
-		game.broadcast <- NewMessage(GameAbortedAction, nil, game.ID, nil, time.Now())
+		game.broadcast <- NewMessage(UserLeftAction, client.User.Id, game.ID, nil, time.Now())
+		game.broadcast <- NewMessage(GameAbortedAction, client.User.Id, game.ID, nil, time.Now())
 		return
 
 	}
 
 	game.unregister <- client
-	game.broadcast <- NewMessage(UserLeftAction, nil, game.ID, nil, time.Now())
+	game.broadcast <- NewMessage(UserLeftAction, client.User.Id, game.ID, nil, time.Now())
 	if len(game.Users) < 2 && game.Status == game_status.GameInProgress {
 		_ = client.wsServer.service.EndGame(game.ID)
 		game.endGame()
-		game.broadcast <- NewMessage(GameAbortedAction, nil, game.ID, nil, time.Now())
+		game.broadcast <- NewMessage(GameAbortedAction, client.User.Id, game.ID, nil, time.Now())
 	}
 }
