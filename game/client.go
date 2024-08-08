@@ -25,29 +25,28 @@ var upgrader = websocket.Upgrader{
 }
 
 type User struct {
-	Id   uuid.UUID `json:"id"`
-	Name string    `json:"name"`
+	Id         uuid.UUID `json:"id"`
+	Name       string    `json:"name"`
+	Authorized bool      `json:"-"`
 }
 
 type Client struct {
 	ID uuid.UUID
 	// The actual websocket connection.
-	conn       *websocket.Conn
-	wsServer   *WsServer
-	send       chan []byte
-	Authorized bool
-	User       *User
+	conn     *websocket.Conn
+	wsServer *WsServer
+	send     chan []byte
+	User     *User
 }
 
 // newClient creates a new client.
-func newClient(conn *websocket.Conn, wsServer *WsServer, user User, authorized bool) *Client {
+func newClient(conn *websocket.Conn, wsServer *WsServer, user User) *Client {
 	return &Client{
-		ID:         uuid.New(),
-		User:       &user,
-		conn:       conn,
-		wsServer:   wsServer,
-		send:       make(chan []byte, 256),
-		Authorized: authorized,
+		ID:       uuid.New(),
+		User:     &user,
+		conn:     conn,
+		wsServer: wsServer,
+		send:     make(chan []byte, 256),
 	}
 
 }
@@ -93,9 +92,10 @@ func ServeWs(wsServer *WsServer, w http.ResponseWriter, r *http.Request) {
 		}
 
 		client = newClient(conn, wsServer, User{
-			Id:   userId,
-			Name: userName,
-		}, false)
+			Id:         userId,
+			Name:       userName,
+			Authorized: false,
+		})
 
 	} else if len(token[0]) > 0 {
 		id, access, err := wsServer.service.ParseToken(token[0])
@@ -119,9 +119,10 @@ func ServeWs(wsServer *WsServer, w http.ResponseWriter, r *http.Request) {
 		}
 
 		client = newClient(conn, wsServer, User{
-			Id:   userId,
-			Name: userName,
-		}, true)
+			Id:         userId,
+			Name:       userName,
+			Authorized: true,
+		})
 
 	}
 
