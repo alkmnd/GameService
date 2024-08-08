@@ -113,15 +113,6 @@ func (game *Game) registerClientInGame(client *Client) {
 		return
 	}
 
-	for i := range game.Users {
-		if game.Users[i].Id == client.User.Id {
-			message := NewMessage(UserJoinedAction, game, game.ID, client.User, time.Now())
-			client.notifyClient(message)
-			game.Clients[client] = true
-			return
-		}
-	}
-
 	if game.Status == game_status.GameInProgress || game.Status == game_status.GameEnded {
 		message := NewMessage(Error, ErrorMessage{
 			Code:    2,
@@ -129,6 +120,15 @@ func (game *Game) registerClientInGame(client *Client) {
 		}, game.ID, client.User, time.Now())
 		client.notifyClient(message)
 		return
+	}
+
+	for i := range game.Users {
+		if game.Users[i].Id == client.User.Id {
+			message := NewMessage(UserJoinedAction, game, game.ID, client.User, time.Now())
+			client.notifyClient(message)
+			game.Clients[client] = true
+			return
+		}
 	}
 
 	message := NewMessage(UserJoinedAction, game, game.ID, client.User, time.Now())
@@ -185,22 +185,22 @@ func (game *Game) startRound(client *Client, topicId uuid.UUID) {
 	})) == 0 {
 		game.endGame()
 		results := make([]models.Rates, 0)
-		for i, _ := range game.Clients {
-			userTempId := i.User.Id
+		for i, _ := range game.Users {
+			userTempId := game.Users[i].Id
 			userId := uuid.Nil
-			if i.Authorized {
-				userId = i.User.Id
+			if game.Users[i].Authorized {
+				userId = game.Users[i].Id
 			}
 			var tags []uuid.UUID
-			for j := range game.Results[i.User.Id].Tags {
+			for j := range game.Results[game.Users[i].Id].Tags {
 				tags = append(tags, j)
 			}
 			results = append(results, models.Rates{
-				Value:           game.Results[i.User.Id].Value,
+				Value:           game.Results[game.Users[i].Id].Value,
 				Tags:            tags,
 				UserId:          userId,
 				UserTemporaryId: userTempId,
-				Name:            i.User.Name,
+				Name:            game.Users[i].Name,
 			})
 		}
 		_ = client.wsServer.service.SaveResults(game.ID, results)
@@ -300,7 +300,7 @@ func (game *Game) startGame(client *Client) {
 			game.ID, nil, time.Now()))
 		return
 	}
-	if game.Status == "in_progress" || game.Status == "ended" {
+	if game.Status == game_status.GameInProgress || game.Status == game_status.GameEnded {
 		client.notifyClient(NewMessage(Error, ErrorMessage{
 			Code:    5,
 			Message: "game is in progress or ended",
@@ -389,24 +389,23 @@ func (game *Game) startStage(client *Client) {
 	})) == 0 && len(game.Round.UsersQuestions) == 0 {
 		game.endGame()
 		results := make([]models.Rates, 0)
-		for i, _ := range game.Clients {
+		for i, _ := range game.Users {
+			userTempId := game.Users[i].Id
 			userId := uuid.Nil
-			userTempId := i.User.Id
-			if i.Authorized {
-				userId = i.User.Id
+			if game.Users[i].Authorized {
+				userId = game.Users[i].Id
 			}
 			var tags []uuid.UUID
-			for j := range game.Results[i.User.Id].Tags {
+			for j := range game.Results[game.Users[i].Id].Tags {
 				tags = append(tags, j)
 			}
 			results = append(results, models.Rates{
-				Value:           game.Results[i.User.Id].Value,
+				Value:           game.Results[game.Users[i].Id].Value,
 				Tags:            tags,
 				UserId:          userId,
 				UserTemporaryId: userTempId,
-				Name:            i.User.Name,
+				Name:            game.Users[i].Name,
 			})
-
 		}
 		_ = client.wsServer.service.SaveResults(game.ID, results)
 		_ = client.wsServer.service.EndGame(game.ID)
