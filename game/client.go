@@ -656,10 +656,10 @@ func (client *Client) handleLeaveGameMessage(message Message) {
 			},
 			Time: time.Now(),
 		}
-		message.Payload = client.User.Id
 		client.notifyClient(message)
 		return
 	}
+	message.Payload = client.User.Id
 	if client.User.Id == game.Creator && game.Status == game_status.GameInProgress {
 		_ = client.wsServer.service.EndGame(game.ID)
 		game.endGame()
