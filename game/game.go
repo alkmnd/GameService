@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/ledongthuc/goterators"
+	"sync"
 	"time"
 )
 
@@ -23,6 +24,7 @@ type Game struct {
 	ID         uuid.UUID            `json:"id"`
 	Users      []*User              `json:"users,omitempty"`
 	Results    map[uuid.UUID]*Rates `json:"-"`
+	mutex      sync.Mutex
 }
 
 // UserQuestion Генерируются в начале раунда.
@@ -103,21 +105,14 @@ func (game *Game) RunGame() {
 }
 
 func (game *Game) registerClientInGame(client *Client) {
+	game.mutex.Lock()
+	defer game.mutex.Unlock()
 	if len(game.Users) == game.MaxSize {
 		message := NewMessage(Error, ErrorMessage{
 			Code:    1,
 			Message: "max number of participants",
 		}, game.ID, nil, time.Now())
 
-		client.notifyClient(message)
-		return
-	}
-
-	if game.Status == game_status.GameInProgress || game.Status == game_status.GameEnded {
-		message := NewMessage(Error, ErrorMessage{
-			Code:    2,
-			Message: "game in progress",
-		}, game.ID, client.User, time.Now())
 		client.notifyClient(message)
 		return
 	}
@@ -129,6 +124,14 @@ func (game *Game) registerClientInGame(client *Client) {
 			game.Clients[client] = true
 			return
 		}
+	}
+	if game.Status == game_status.GameInProgress || game.Status == game_status.GameEnded {
+		message := NewMessage(Error, ErrorMessage{
+			Code:    2,
+			Message: "game in progress",
+		}, game.ID, client.User, time.Now())
+		client.notifyClient(message)
+		return
 	}
 
 	message := NewMessage(UserJoinedAction, game, game.ID, client.User, time.Now())

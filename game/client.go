@@ -656,6 +656,7 @@ func (client *Client) handleLeaveGameMessage(message Message) {
 			},
 			Time: time.Now(),
 		}
+		message.Payload = client.User.Id
 		client.notifyClient(message)
 		return
 	}
