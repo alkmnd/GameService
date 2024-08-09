@@ -107,6 +107,16 @@ func (game *Game) RunGame() {
 func (game *Game) registerClientInGame(client *Client) {
 	game.mutex.Lock()
 	defer game.mutex.Unlock()
+
+	for i := range game.Users {
+		if game.Users[i].Id == client.User.Id {
+			message := NewMessage(UserJoinedAction, game, game.ID, client.User, time.Now())
+			client.notifyClient(message)
+			game.Clients[client] = true
+			return
+		}
+	}
+
 	if len(game.Users) == game.MaxSize {
 		message := NewMessage(Error, ErrorMessage{
 			Code:    1,
@@ -117,14 +127,6 @@ func (game *Game) registerClientInGame(client *Client) {
 		return
 	}
 
-	for i := range game.Users {
-		if game.Users[i].Id == client.User.Id {
-			message := NewMessage(UserJoinedAction, game, game.ID, client.User, time.Now())
-			client.notifyClient(message)
-			game.Clients[client] = true
-			return
-		}
-	}
 	if game.Status == game_status.GameInProgress || game.Status == game_status.GameEnded {
 		message := NewMessage(Error, ErrorMessage{
 			Code:    2,
