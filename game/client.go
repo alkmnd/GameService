@@ -354,6 +354,7 @@ func (client *Client) handleStartStageMessage(message Message) {
 func (client *Client) handleRateMessage(message Message) {
 	gameId := message.Target
 	game := client.wsServer.findGame(gameId)
+
 	if game == nil || game.Round == nil {
 		return
 	}
@@ -420,7 +421,6 @@ func (client *Client) handleUserEndAnswerMessage(message Message) {
 		client.notifyClient(message)
 		return
 	}
-	game.initRates(client)
 	message.Time = time.Now()
 
 	game.broadcast <- &message
