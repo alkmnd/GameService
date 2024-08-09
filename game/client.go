@@ -358,6 +358,8 @@ func (client *Client) handleRateMessage(message Message) {
 	if game == nil || game.Round == nil {
 		return
 	}
+	game.mutex.Lock()
+	defer game.mutex.Unlock()
 	if game.Results == nil {
 		game.Results = make(map[uuid.UUID]*Rates)
 	}
@@ -385,13 +387,13 @@ func (client *Client) handleRateMessage(message Message) {
 
 	game.broadcast <- &message
 
-	usersQuestions := goterators.Filter(game.Round.UsersQuestions, func(item *UserQuestion) bool {
+	userQuestion := goterators.Filter(game.Round.UsersQuestions, func(item *UserQuestion) bool {
 		return item.User.Id == rate.UserId
 	})[0]
 
-	if len(usersQuestions.Rates) == len(game.Users)-1 {
+	if len(userQuestion.Rates) == len(game.Users)-1 {
 		game.Round.UsersQuestions = goterators.Filter(game.Round.UsersQuestions, func(item *UserQuestion) bool {
-			return item.User != usersQuestions.User
+			return item.User != userQuestion.User
 		})
 		game.broadcast <- NewMessage(
 			RateEndAction, nil,
