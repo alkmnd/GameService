@@ -479,24 +479,30 @@ func (game *Game) updateResults(client *Client, user uuid.UUID, value int, tags 
 	usersQuestions := goterators.Filter(game.Round.UsersQuestions, func(item *UserQuestion) bool {
 		return item.User.Id == user
 	})[0]
-
-	usersQuestions.Rates[client.User.Id].Value = value
-	for i := range tags {
-		usersQuestions.Rates[client.User.Id].Tags[tags[i]] = true
-	}
-	_, ok := game.Results[user]
-	if !ok {
-		game.Results[user] = &Rates{
+	_, rateOk := usersQuestions.Rates[client.User.Id]
+	if !rateOk {
+		usersQuestions.Rates[client.User.Id] = &Rates{
 			Value: 0,
 			Tags:  make(map[uuid.UUID]bool),
 		}
-		game.Results[user].Value = value
-	} else {
-		game.Results[user].Value += value
-	}
-	if tags != nil {
+		usersQuestions.Rates[client.User.Id].Value = value
 		for i := range tags {
-			game.Results[user].Tags[tags[i]] = true
+			usersQuestions.Rates[client.User.Id].Tags[tags[i]] = true
+		}
+		_, ok := game.Results[user]
+		if !ok {
+			game.Results[user] = &Rates{
+				Value: 0,
+				Tags:  make(map[uuid.UUID]bool),
+			}
+			game.Results[user].Value = value
+		} else {
+			game.Results[user].Value += value
+		}
+		if tags != nil {
+			for i := range tags {
+				game.Results[user].Tags[tags[i]] = true
+			}
 		}
 	}
 }

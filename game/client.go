@@ -421,7 +421,7 @@ func (client *Client) handleUserEndAnswerMessage(message Message) {
 		client.notifyClient(message)
 		return
 	}
-	game.initRates(client)
+	//game.initRates(client)
 	message.Time = time.Now()
 
 	game.broadcast <- &message
