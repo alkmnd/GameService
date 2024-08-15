@@ -278,11 +278,17 @@ func (client *Client) handleDeleteUserAction(message Message) {
 		return
 	}
 	var userId uuid.UUID
-	jsonPayload, err := json.Marshal(message.Payload)
-	if err != nil {
-		return
+	if payload, ok := message.Payload.(string); ok {
+		_uuid, err := uuid.Parse(payload)
+		if err != nil {
+			client.notifyClient(NewMessage(Error, ErrorMessage{
+				Code:    9,
+				Message: "incorrect payload",
+			}, game.ID, nil, time.Now()))
+			return
+		}
+		userId = _uuid
 	}
-	err = json.Unmarshal(jsonPayload, &userId)
 	for i, _ := range game.Clients {
 		if i.User.Id == userId {
 			i.notifyClient(NewMessage(UserDeletedAction, game.Users, game.ID, client.User, time.Now()))
