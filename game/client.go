@@ -285,6 +285,7 @@ func (client *Client) handleDeleteUserAction(message Message) {
 	err = json.Unmarshal(jsonPayload, &userId)
 	for i, _ := range game.Clients {
 		if i.User.Id == userId {
+			i.notifyClient(NewMessage(UserDeletedAction, game.Users, game.ID, client.User, time.Now()))
 			game.unregister <- i
 			break
 		}
