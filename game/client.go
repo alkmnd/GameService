@@ -274,7 +274,7 @@ func (client *Client) handleDeleteUserAction(message Message) {
 		client.notifyClient(message)
 		return
 	}
-	if game.isCreator(client) {
+	if !game.isCreator(client) {
 		return
 	}
 	var userId uuid.UUID
