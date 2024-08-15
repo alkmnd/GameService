@@ -256,7 +256,6 @@ func (game *Game) startRound(client *Client, topicId uuid.UUID) {
 			Rates:    make(map[uuid.UUID]*Rates),
 		})
 		cnt++
-
 	}
 
 	topic.Used = true
