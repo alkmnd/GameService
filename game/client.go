@@ -291,12 +291,12 @@ func (client *Client) handleDeleteUserAction(message Message) {
 	}
 	for i, _ := range game.Clients {
 		if i.User.Id == userId {
-			i.notifyClient(NewMessage(UserDeletedAction, game.Users, game.ID, client.User, time.Now()))
+			i.notifyClient(NewMessage(UserDeletedAction, userId, game.ID, client.User, time.Now()))
 			game.unregister <- i
 			break
 		}
 	}
-	game.broadcast <- NewMessage(UserDeletedAction, game.Users, game.ID, client.User, time.Now())
+	game.broadcast <- NewMessage(UserDeletedAction, userId, game.ID, client.User, time.Now())
 }
 
 type ratePayload struct {
